@@ -1,0 +1,56 @@
+[
+  {
+    "testFile": "login.spec.ts",
+    "testCaseId": "TC-001",
+    "projectName": "stig",
+    "description": "User login functionality"
+  },
+  {
+    "testFile": "dashboard.spec.ts", 
+    "testCaseId": "TC-002",
+    "projectName": "stig",
+    "description": "Dashboard navigation and display"
+  },
+  {
+    "testFile": "user-management.spec.ts",
+    "testCaseId": "TC-003", 
+    "projectName": "stig",
+    "description": "User management operations"
+  },
+  {
+    "testFile": "login.spec.ts",
+    "testCaseId": "TC-101",
+    "projectName": "abb",
+    "description": "ABB user authentication"
+  },
+  {
+    "testFile": "data-analysis.spec.ts",
+    "testCaseId": "TC-102",
+    "projectName": "abb", 
+    "description": "Data analysis workflows"
+  },
+  {
+    "testFile": "reporting.spec.ts",
+    "testCaseId": "TC-103",
+    "projectName": "abb",
+    "description": "Report generation and export"
+  },
+  {
+    "testFile": "login.spec.ts",
+    "testCaseId": "TC-201",
+    "projectName": "dsmd",
+    "description": "DSMD system access"
+  },
+  {
+    "testFile": "device-monitoring.spec.ts",
+    "testCaseId": "TC-202", 
+    "projectName": "dsmd",
+    "description": "Device status monitoring"
+  },
+  {
+    "testFile": "configuration.spec.ts",
+    "testCaseId": "TC-203",
+    "projectName": "dsmd",
+    "description": "System configuration management"
+  }
+]
