@@ -31,6 +31,7 @@ New here? Read the **[Getting Started guide](GETTING_STARTED.md)** — it walks 
 | CI/CD | [GitHub Actions](https://docs.github.com/en/actions) | Free tier / pay-as-you-go |
 | Slack alerts | Slack Incoming Webhooks | Free |
 | Reporting | Playwright HTML report | Free / built-in |
+| AI browser control | [@playwright/mcp](https://github.com/microsoft/playwright-mcp) | Free / OSS |
 
 ---
 
@@ -448,6 +449,41 @@ Add page objects as your app grows. Keep smoke tests small and fast — if `@smo
 
 ---
 
+## Using with Claude Code
+
+This template ships with full [Claude Code](https://claude.ai/code) support out of the box.
+
+### Playwright MCP — AI browser control
+
+[`.mcp.json`](.mcp.json) configures the `@playwright/mcp` server, which gives Claude a live browser it can drive while you work. When you open this project in Claude Code, Claude can:
+
+- Navigate to any page in your app and inspect the real DOM
+- Discover stable locators for elements (`getByRole`, `getByLabel`, `getByTestId`) instead of guessing
+- Take screenshots to verify what a page looks like before writing visual tests
+- Reproduce a failing test step-by-step in the browser
+
+No setup needed — it activates automatically when you open the project.
+
+**Switch to headed mode** (browser visible) by editing `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"]
+    }
+  }
+}
+```
+
+### Claude agent architecture
+
+The `agents/`, `skills/`, and `commands/` folders define how Claude approaches tasks in this repo — writing tests, debugging failures, building page objects. See [`CLAUDE.md`](CLAUDE.md) for the full reference.
+
+---
+
 ## Documentation
 
 - [Getting Started](GETTING_STARTED.md) — full setup, first test, auth, debugging, CI, best practices, troubleshooting
+- [CLAUDE.md](CLAUDE.md) — coding standards, agent rules, MCP usage, file structure reference

@@ -166,6 +166,25 @@ When writing or editing any file in this project:
 | Regenerate visual baselines | `commands/update-snapshots.md` |
 | Scaffold a new page + tests | `commands/new-page.md` |
 
+### When to use Playwright MCP
+
+The `@playwright/mcp` server (configured in `.mcp.json`) gives Claude a live browser. Use it when writing or debugging tests — it makes locator discovery accurate and fast instead of speculative.
+
+| Situation | MCP tool to use |
+| --- | --- |
+| Need a locator for an element but no HTML is available | `browser_navigate` → `browser_snapshot` |
+| Writing a new page object for an unfamiliar page | `browser_navigate` → `browser_snapshot` |
+| Debugging a failing test — want to see what the page looks like | `browser_navigate` → `browser_screenshot` |
+| Verifying a visual test baseline before committing | `browser_navigate` → `browser_screenshot` |
+| Reproducing a flaky test step interactively | `browser_navigate` → `browser_click` / `browser_fill` |
+
+**Rules for MCP use:**
+
+- Always prefer `browser_snapshot` (accessibility tree) over `browser_screenshot` for locator discovery — the tree gives you roles, labels, and text directly
+- Never navigate to production — only staging or local dev servers
+- MCP sessions are ephemeral — do not rely on browser state persisting between tool calls
+- MCP replaces `npx playwright codegen` for locator work — prefer it since it keeps the context in conversation
+
 ---
 
 ## File Structure Overview
