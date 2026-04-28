@@ -1,5 +1,10 @@
 # Playwright QA Template
 
+[![CI](https://github.com/thoangdev/Web-QA-Automation-Pipeline-Public/actions/workflows/ci.yml/badge.svg)](https://github.com/thoangdev/Web-QA-Automation-Pipeline-Public/actions/workflows/ci.yml)
+[![Security](https://github.com/thoangdev/Web-QA-Automation-Pipeline-Public/actions/workflows/security.yml/badge.svg)](https://github.com/thoangdev/Web-QA-Automation-Pipeline-Public/actions/workflows/security.yml)
+[![Playwright](https://img.shields.io/npm/v/@playwright/test?label=Playwright&color=2EAD33)](https://playwright.dev)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A lean, grab-and-go QA pipeline for SaaS web apps. Fork it, point it at your app, and ship with confidence. No enterprise bloat — every tool here is open source or free tier.
 
 **What you get out of the box:**
@@ -15,6 +20,24 @@ New here? Read the **[Getting Started guide](GETTING_STARTED.md)** — it walks 
 - **Fast feedback first.** Smoke tests run on every push in under 2 minutes. Full regression is nightly or on demand.
 - **Free by default.** GitHub Actions, Playwright, axe-core, OWASP ZAP, Lighthouse CI, CodeQL, and Dependabot are all free for public repos and generous on private.
 - **Start small.** Clone → set `BASE_URL` → write your first smoke test. Expand the suite as your app grows.
+
+---
+
+## Who this is for
+
+**Good fit:**
+
+- Small-to-mid SaaS teams that need a working QA pipeline now, not a framework to build from scratch
+- Teams already on GitHub Actions who want tests that slot straight into CI
+- Engineers who want Playwright's full feature set without the boilerplate setup
+- Projects that need E2E, API, accessibility, and visual coverage from a single toolchain
+
+**Not a good fit:**
+
+- Teams with an existing Cypress or WebdriverIO suite they're happy with
+- Projects that require native mobile testing (iOS/Android)
+- Monorepos with complex multi-app test orchestration needs
+- Teams that need a managed cloud grid (BrowserStack, Sauce Labs, LambdaTest)
 
 ---
 
@@ -120,7 +143,7 @@ npx playwright test --update-snapshots tests/visual/
 Tags go directly in test titles — no extra config.
 
 | Tag | Runs on | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `@smoke` | Every push + PR | Critical happy path, fast |
 | `@regression` | Nightly + release | Full coverage |
 | `@api` | Every push | REST contract tests |
@@ -218,7 +241,7 @@ export const test = base.extend<{
     await use(new LoginPage(page));
   },
   authedPage: async ({ browser }, use) => {
-    const ctx  = await browser.newContext({ storageState: 'auth.json' });
+    const ctx  = await browser.newContext({ storageState: '.auth/user.json' });
     const page = await ctx.newPage();
     await use(page);
     await ctx.close();
@@ -285,7 +308,7 @@ npx playwright test --update-snapshots tests/visual/
 
 ## Security (OWASP ZAP)
 
-ZAP does a passive baseline scan — it finds common vulnerabilities without active probing. No config needed beyond a Docker daemon.
+ZAP runs a **passive, unauthenticated** baseline scan — it spiders the target and flags common vulnerabilities without sending attack payloads or logging in. This catches a broad set of misconfigurations and header issues but will not reach authenticated pages or test business logic. For coverage behind a login, see the [ZAP authentication docs](https://www.zaproxy.org/docs/authentication/) to add a script-based auth context. No extra config needed for the passive scan beyond a Docker daemon.
 
 **Local:**
 
@@ -437,7 +460,7 @@ npm run typecheck         # tsc --noEmit
 ## Adapting This Template
 
 | Thing to change | Where |
-|---|---|
+| --- | --- |
 | Target URL | `.env.local` → `BASE_URL` |
 | Auth flow | `src/fixtures/base.fixture.ts` + `src/pages/LoginPage.ts` |
 | Performance thresholds | `lighthouserc.yml` |
@@ -462,7 +485,7 @@ This template ships with full [Claude Code](https://claude.ai/code) support out 
 - Take screenshots to verify what a page looks like before writing visual tests
 - Reproduce a failing test step-by-step in the browser
 
-No setup needed — it activates automatically when you open the project.
+**Prerequisites:** [Claude Code](https://claude.ai/code) must be installed and `npx` must be available (it ships with Node.js). Once those are in place, the MCP server starts automatically when you open the project — no additional configuration required.
 
 **Switch to headed mode** (browser visible) by editing `.mcp.json`:
 

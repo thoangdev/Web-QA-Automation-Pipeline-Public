@@ -5,9 +5,6 @@ export class BasePage {
 
   async goto(path: string) {
     await this.page.goto(path);
-  }
-
-  async waitForNetworkIdle() {
     await this.page.waitForLoadState('networkidle');
   }
 }
