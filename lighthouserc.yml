@@ -1,0 +1,29 @@
+ci:
+  collect:
+    numberOfRuns: 1
+    url:
+      - ${BASE_URL}
+      - ${BASE_URL}/login
+
+  assert:
+    # Adjust minScore to match your app's current baseline, then raise over time.
+    assertions:
+      categories:performance:
+        - error
+        - minScore: 0.85
+          aggregationMethod: pessimistic
+      categories:accessibility:
+        - error
+        - minScore: 0.90
+          aggregationMethod: pessimistic
+      categories:best-practices:
+        - error
+        - minScore: 0.90
+          aggregationMethod: pessimistic
+      categories:seo:
+        - warn
+        - minScore: 0.80
+          aggregationMethod: pessimistic
+
+  upload:
+    target: temporary-public-storage

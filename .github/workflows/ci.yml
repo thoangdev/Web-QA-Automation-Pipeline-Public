@@ -1,0 +1,147 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'  # nightly at 02:00 UTC
+  workflow_dispatch:
+
+env:
+  BASE_URL:           ${{ secrets.BASE_URL }}
+  TEST_USER_EMAIL:    ${{ secrets.TEST_USER_EMAIL }}
+  TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+
+jobs:
+  # ── 1. Static analysis ──────────────────────────────────────────────────────
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+
+  # ── 2. Smoke + API (every push) ─────────────────────────────────────────────
+  smoke:
+    name: Smoke & API Tests
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run smoke + API tests
+        run: npx playwright test --grep "@smoke|@api" --project=chromium
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: report-smoke-${{ github.run_number }}
+          path: reports/html/
+          retention-days: 7
+
+  # ── 3. Regression (nightly + main pushes only) ──────────────────────────────
+  regression:
+    name: Regression Tests
+    needs: smoke
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run regression tests
+        run: npx playwright test --grep @regression --project=chromium
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: report-regression-${{ github.run_number }}
+          path: reports/html/
+          retention-days: 14
+
+  # ── 4. Accessibility (every PR) ─────────────────────────────────────────────
+  accessibility:
+    name: Accessibility Tests
+    needs: smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run accessibility tests
+        run: npx playwright test --grep @a11y --project=chromium
+
+  # ── 5. Visual diffs (non-blocking) ──────────────────────────────────────────
+  visual:
+    name: Visual Tests
+    needs: smoke
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run visual tests
+        run: npx playwright test --grep @visual --project=chromium
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: report-visual-${{ github.run_number }}
+          path: reports/html/
+          retention-days: 7
+
+  # ── 6. Slack notification ────────────────────────────────────────────────────
+  notify:
+    name: Slack Notification
+    needs: [smoke, accessibility, visual]
+    if: always()
+    runs-on: ubuntu-latest
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    steps:
+      - name: Notify Slack
+        if: env.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "${{ needs.smoke.result == 'success' && '✅' || '❌' }} *${{ github.repository }}* — ${{ github.workflow }}",
+              "attachments": [{
+                "color": "${{ needs.smoke.result == 'success' && 'good' || 'danger' }}",
+                "fields": [
+                  { "title": "Branch",       "value": "${{ github.ref_name }}",                     "short": true },
+                  { "title": "Triggered by", "value": "${{ github.actor }}",                        "short": true },
+                  { "title": "Smoke",        "value": "${{ needs.smoke.result }}",                  "short": true },
+                  { "title": "A11y",         "value": "${{ needs.accessibility.result }}",           "short": true },
+                  { "title": "Run",          "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}", "short": false }
+                ]
+              }]
+            }

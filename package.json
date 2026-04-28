@@ -1,49 +1,30 @@
 {
-  "name": "dispel-e2e-monorepo",
+  "name": "playwright-qa-template",
   "version": "1.0.0",
-  "description": "Multi-product E2E testing monorepo for Dispel with ZAP integration, Tuskr mapping, and Slack notifications",
   "private": true,
+  "description": "Lean QA automation template for SaaS web apps — Playwright + TypeScript",
   "scripts": {
-    "test": "playwright test",
-    "test:stig": "playwright test --project=stig",
-    "test:abb": "playwright test --project=abb",
-    "test:dsmd": "playwright test --project=dsmd",
-    "test:headed": "playwright test --headed",
-    "test:debug": "playwright test --debug",
-    "test:ui": "playwright test --ui",
-    "playwright:codegen:stig": "playwright codegen --target=\"./projects/stig/pages/\" --load-storage=\"./projects/stig/fixtures/auth.json\"",
-    "playwright:codegen:abb": "playwright codegen --target=\"./projects/abb/pages/\" --load-storage=\"./projects/abb/fixtures/auth.json\"",
-    "playwright:codegen:dsmd": "playwright codegen --target=\"./projects/dsmd/pages/\" --load-storage=\"./projects/dsmd/fixtures/auth.json\"",
-    "report": "playwright show-report",
-    "install": "playwright install",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "type-check": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@playwright/test": "^1.40.0",
-    "dotenv": "^16.3.1"
+    "test":            "playwright test",
+    "test:smoke":      "playwright test --grep @smoke --project=chromium",
+    "test:regression": "playwright test --grep @regression --project=chromium",
+    "test:api":        "playwright test tests/api/ --project=chromium",
+    "test:a11y":       "playwright test --grep @a11y --project=chromium",
+    "test:visual":     "playwright test --grep @visual --project=chromium",
+    "report":          "playwright show-report reports/html",
+    "typecheck":       "tsc --noEmit",
+    "lint":            "eslint .",
+    "lint:fix":        "eslint . --fix",
+    "format":          "prettier --write \"**/*.{ts,json,yml,md}\"",
+    "format:check":    "prettier --check \"**/*.{ts,json,yml,md}\""
   },
   "devDependencies": {
-    "@types/node": "^20.10.0",
-    "@typescript-eslint/eslint-plugin": "^6.13.0",
-    "@typescript-eslint/parser": "^6.13.0",
-    "eslint": "^8.55.0",
-    "prettier": "^3.1.0",
-    "typescript": "^5.3.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "keywords": [
-    "playwright",
-    "e2e",
-    "testing",
-    "dispel",
-    "zap",
-    "security",
-    "automation"
-  ]
+    "@axe-core/playwright": "^4.10.0",
+    "@playwright/test":     "^1.52.0",
+    "@types/node":          "^22.0.0",
+    "dotenv":               "^16.4.0",
+    "eslint":               "^9.0.0",
+    "prettier":             "^3.4.0",
+    "typescript":           "^5.7.0",
+    "typescript-eslint":    "^8.0.0"
+  }
 }
