@@ -60,23 +60,27 @@ New here? Read the **[Getting Started guide](GETTING_STARTED.md)** — it walks 
 
 ## Quick Start
 
+The template ships pre-wired against **[saucedemo.com](https://www.saucedemo.com)** — clone
+and run, no setup required.
+
 ```bash
 # 1. Clone and install
 npm install
-npx playwright install --with-deps
+npx playwright install --with-deps chromium
 
-# 2. Set your target URL
+# 2. (Optional) point at your own app — defaults to saucedemo.com
 cp .env.example .env.local
-# edit .env.local: set BASE_URL=https://your-app.com
+# edit .env.local: set BASE_URL=https://your-staging-app.com
 
 # 3. Run smoke tests
-npx playwright test --grep @smoke
+npm run test:smoke
 
 # 4. Open the report
-npx playwright show-report
+npm run report
 ```
 
-That's it. You're running tests.
+You should see the login and inventory smoke tests pass against saucedemo. From there,
+swap `BASE_URL` to your app, update credentials, and adapt the page objects.
 
 For a full walkthrough — writing your first test, setting up auth, debugging, CI secrets, and best practices — see the **[Getting Started guide](GETTING_STARTED.md)**.
 
@@ -431,13 +435,15 @@ updates:
 
 ```bash
 # .env.example — copy to .env.local, never commit .env.local
-BASE_URL=https://your-app.com
-TEST_USER_EMAIL=test@example.com
-TEST_USER_PASSWORD=
+BASE_URL=https://www.saucedemo.com           # default: saucedemo
+TEST_USER_USERNAME=standard_user             # default: saucedemo standard user
+TEST_USER_PASSWORD=secret_sauce              # default: saucedemo password
 API_KEY=
 SLACK_WEBHOOK_URL=
-LHCI_GITHUB_APP_TOKEN=   # only needed for Lighthouse CI GitHub status checks
+LHCI_GITHUB_APP_TOKEN=                       # only needed for Lighthouse CI GitHub status checks
 ```
+
+See [`SECURITY.md`](SECURITY.md) for full secret-handling guidance.
 
 ---
 

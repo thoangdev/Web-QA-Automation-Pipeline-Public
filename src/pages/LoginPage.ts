@@ -1,15 +1,30 @@
 import { BasePage } from './BasePage';
 
 export class LoginPage extends BasePage {
-  private email    = this.page.getByLabel('Email');
-  private password = this.page.getByLabel('Password');
-  private submit   = this.page.getByRole('button', { name: 'Sign in' });
+  protected readonly path = '/';
 
-  async login(email: string, password: string) {
-    await this.goto('/login');
-    await this.email.fill(email);
+  private readonly username = this.page.getByTestId('username');
+  private readonly password = this.page.getByTestId('password');
+  private readonly submit = this.page.getByTestId('login-button');
+  private readonly error = this.page.getByTestId('error');
+  private readonly logo = this.page.locator('.login_logo');
+
+  async waitForLoad(): Promise<void> {
+    await this.logo.waitFor({ state: 'visible' });
+  }
+
+  async login(username: string, password: string): Promise<void> {
+    await this.username.fill(username);
     await this.password.fill(password);
     await this.submit.click();
-    await this.page.waitForURL('**/dashboard**');
+  }
+
+  async loginAndWaitForInventory(username: string, password: string): Promise<void> {
+    await this.login(username, password);
+    await this.page.waitForURL('**/inventory.html');
+  }
+
+  async getErrorMessage(): Promise<string> {
+    return (await this.error.textContent()) ?? '';
   }
 }

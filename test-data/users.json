@@ -1,0 +1,29 @@
+{
+  "$schema": "./users.schema.json",
+  "users": {
+    "standard": {
+      "username": "standard_user",
+      "description": "Normal user — full flow works"
+    },
+    "lockedOut": {
+      "username": "locked_out_user",
+      "description": "Cannot log in — used to validate the locked-account error path"
+    },
+    "problem": {
+      "username": "problem_user",
+      "description": "Renders broken UI — useful for visual/a11y diff tests"
+    },
+    "performanceGlitch": {
+      "username": "performance_glitch_user",
+      "description": "Slow responses — used to validate explicit waits"
+    },
+    "error": {
+      "username": "error_user",
+      "description": "Backend errors on specific actions"
+    },
+    "visual": {
+      "username": "visual_user",
+      "description": "Visual differences — for screenshot regression demos"
+    }
+  }
+}

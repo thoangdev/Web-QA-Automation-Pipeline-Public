@@ -1,9 +1,17 @@
 // @ts-check
-const tseslint = require('typescript-eslint');
+import tseslint from 'typescript-eslint';
 
-module.exports = tseslint.config(
+export default tseslint.config(
   {
-    ignores: ['node_modules/**', 'dist/**', 'reports/**', 'test-results/**', '.auth/**'],
+    ignores: [
+      'node_modules/**',
+      'dist/**',
+      'reports/**',
+      'blob-report/**',
+      'test-results/**',
+      '.auth/**',
+      'tests/visual/**/*-snapshots/**',
+    ],
   },
   ...tseslint.configs.recommended,
   {

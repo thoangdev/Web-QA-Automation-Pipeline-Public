@@ -1,10 +1,19 @@
-import { Page } from '@playwright/test';
+import { Page, Response } from '@playwright/test';
 
-export class BasePage {
+export abstract class BasePage {
   constructor(protected readonly page: Page) {}
 
-  async goto(path: string) {
-    await this.page.goto(path);
-    await this.page.waitForLoadState('networkidle');
+  protected abstract readonly path: string;
+
+  async goto(): Promise<Response | null> {
+    const res = await this.page.goto(this.path);
+    await this.waitForLoad();
+    return res;
+  }
+
+  abstract waitForLoad(): Promise<void>;
+
+  url(): string {
+    return this.page.url();
   }
 }

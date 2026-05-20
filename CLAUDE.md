@@ -4,6 +4,8 @@
 
 This is a lean, SaaS-focused QA automation template built on Playwright and TypeScript. It is designed to be cloned and adapted — not a framework you import, but a starting point you own. It covers E2E, API, visual, accessibility, and smoke testing from a single toolchain.
 
+The template ships **wired against [saucedemo.com](https://www.saucedemo.com) out of the box**: page objects, fixtures, auth setup, and tests all target it. To adopt the template, point `BASE_URL` at your app and adapt the page objects — see `TODO.md` for the checklist.
+
 The project has no runtime application code. Every file here is either a test, a test helper, or configuration. Claude's role in this repo is to write, fix, and maintain test code — not to build product features.
 
 ---
@@ -36,7 +38,13 @@ Tests call page objects and fixtures. Tests never interact with raw Playwright l
 
 ### Auth flow
 
-Auth state is saved once via the `setup` project in `playwright.config.ts` and reused across tests via `storageState`. The saved session lives in `.auth/user.json` (gitignored). Tests that need a fresh unauthenticated context create their own browser context.
+Auth state is saved once via the `setup` project in `playwright.config.ts` and reused across tests via `storageState`. The saved session lives in `.auth/user.json` (gitignored, deleted by `global.teardown.ts` in CI). Tests that need a fresh unauthenticated context use the `freshContextPage` fixture from `src/fixtures/base.fixture.ts` — it spawns a clean browser context with `storageState: undefined`.
+
+### Global setup & teardown
+
+- `src/fixtures/global.setup.ts` validates required env vars (`BASE_URL`, `TEST_USER_USERNAME`, `TEST_USER_PASSWORD`), enforces URL shape, and creates `.auth/` and `reports/` directories.
+- `src/fixtures/global.teardown.ts` removes the saved auth state in CI to prevent session leaks between runs.
+- The `page` fixture override in `base.fixture.ts` calls `Header.resetAppState()` after each authenticated test so saucedemo cart/sort state does not leak across tests sharing the same storage state.
 
 ---
 
@@ -131,7 +139,7 @@ When writing or editing any file in this project:
 5. **No CSS selectors.** Semantic locators only.
 6. **Smoke stays small.** Do not add flows that take more than 30 seconds to `tests/smoke/`.
 7. **Tests are independent.** Each test creates its own data and does not rely on prior test execution order.
-8. **No credentials in code.** Read auth from `process.env.*` only.
+8. **No credentials in code.** Read auth from `process.env.*` only — never reference saucedemo's `secret_sauce` literal anywhere except `.env.example`.
 9. **Page objects contain no assertions.** If you find an `expect()` in a page object, move it to the test.
 
 ---

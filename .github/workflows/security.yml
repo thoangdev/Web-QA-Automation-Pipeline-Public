@@ -3,48 +3,87 @@ name: Security
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   schedule:
     - cron: '0 3 * * 1'  # weekly, Monday at 03:00 UTC
   workflow_dispatch:
 
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   security-events: write
+  pull-requests: read
 
 jobs:
   # ── CodeQL static analysis ──────────────────────────────────────────────────
   codeql:
-    name: CodeQL Analysis
+    name: CodeQL
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@v3
         with:
           languages: javascript-typescript
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-      - name: Analyze
-        uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/autobuild@v3
+      - uses: github/codeql-action/analyze@v3
         with:
           category: /language:javascript-typescript
 
-  # ── OWASP ZAP passive baseline scan ────────────────────────────────────────
+  # ── npm audit — fail on high/critical prod vulns ────────────────────────────
+  npm-audit:
+    name: npm audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
+
+  # ── Dependency review on PRs ────────────────────────────────────────────────
+  dependency-review:
+    name: Dependency Review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+
+  # ── Gitleaks secret scanning ────────────────────────────────────────────────
+  gitleaks:
+    name: Gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── OWASP ZAP passive baseline scan ─────────────────────────────────────────
   zap-scan:
-    name: OWASP ZAP Baseline Scan
+    name: OWASP ZAP Baseline
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
-      BASE_URL: ${{ secrets.BASE_URL }}
+      BASE_URL: ${{ secrets.BASE_URL || 'https://www.saucedemo.com' }}
     steps:
       - uses: actions/checkout@v4
       - name: ZAP Baseline Scan
-        if: env.BASE_URL != ''
         uses: zaproxy/action-baseline@v0.14.0
         with:
-          target: ${{ secrets.BASE_URL }}
+          target: ${{ env.BASE_URL }}
           cmd_options: '-I'
-      - name: Upload ZAP report
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: zap-report-${{ github.run_number }}

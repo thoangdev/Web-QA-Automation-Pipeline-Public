@@ -1,30 +1,41 @@
 {
   "name": "playwright-qa-template",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "Lean QA automation template for SaaS web apps — Playwright + TypeScript",
+  "description": "Lean QA automation template for SaaS web apps — Playwright + TypeScript, wired against saucedemo.com out of the box",
+  "engines": {
+    "node": ">=20.11"
+  },
   "scripts": {
-    "test":            "playwright test",
-    "test:smoke":      "playwright test --grep @smoke --project=chromium",
+    "test": "playwright test",
+    "test:smoke": "playwright test --grep @smoke --project=chromium",
     "test:regression": "playwright test --grep @regression --project=chromium",
-    "test:api":        "playwright test tests/api/ --project=chromium",
-    "test:a11y":       "playwright test --grep @a11y --project=chromium",
-    "test:visual":     "playwright test --grep @visual --project=chromium",
-    "report":          "playwright show-report reports/html",
-    "typecheck":       "tsc --noEmit",
-    "lint":            "eslint .",
-    "lint:fix":        "eslint . --fix",
-    "format":          "prettier --write \"**/*.{ts,json,yml,md}\"",
-    "format:check":    "prettier --check \"**/*.{ts,json,yml,md}\""
+    "test:api": "playwright test tests/api/ --project=chromium",
+    "test:a11y": "playwright test --grep @a11y --project=chromium",
+    "test:visual": "playwright test --grep @visual --project=chromium",
+    "test:visual:update": "playwright test --grep @visual --project=chromium --update-snapshots",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:headed": "playwright test --headed --project=chromium",
+    "report": "playwright show-report reports/html",
+    "report:merge": "playwright merge-reports --reporter=html ./blob-report",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{ts,json,yml,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,json,yml,md}\"",
+    "audit": "npm audit --omit=dev --audit-level=high",
+    "prepare:auth": "playwright test --project=setup",
+    "clean": "rm -rf reports test-results blob-report .auth/user.json"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.10.0",
-    "@playwright/test":     "^1.52.0",
-    "@types/node":          "^22.0.0",
-    "dotenv":               "^16.4.0",
-    "eslint":               "^9.0.0",
-    "prettier":             "^3.4.0",
-    "typescript":           "^5.7.0",
-    "typescript-eslint":    "^8.0.0"
+    "@axe-core/playwright": "^4.11.3",
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^25.0.0",
+    "dotenv": "^17.4.2",
+    "eslint": "^10.4.0",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.4"
   }
 }

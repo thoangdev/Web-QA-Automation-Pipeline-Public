@@ -9,10 +9,17 @@ on:
     - cron: '0 2 * * *'  # nightly at 02:00 UTC
   workflow_dispatch:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
 env:
-  BASE_URL:           ${{ secrets.BASE_URL }}
-  TEST_USER_EMAIL:    ${{ secrets.TEST_USER_EMAIL }}
-  TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+  BASE_URL:           ${{ secrets.BASE_URL    || 'https://www.saucedemo.com' }}
+  TEST_USER_USERNAME: ${{ secrets.TEST_USER_USERNAME || 'standard_user' }}
+  TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD || 'secret_sauce' }}
 
 jobs:
   # ── 1. Static analysis ──────────────────────────────────────────────────────
@@ -28,12 +35,17 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm run format:check
 
-  # ── 2. Smoke + API (every push) ─────────────────────────────────────────────
+  # ── 2. Smoke + API (sharded, every push) ────────────────────────────────────
   smoke:
-    name: Smoke & API Tests
+    name: Smoke & API (shard ${{ matrix.shard }}/${{ strategy.job-total }})
     needs: lint
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -43,18 +55,47 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: Run smoke + API tests
-        run: npx playwright test --grep "@smoke|@api" --project=chromium
-      - name: Upload report
-        uses: actions/upload-artifact@v4
+        run: |
+          npx playwright test \
+            --grep "@smoke|@api" \
+            --project=chromium \
+            --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+      - name: Upload blob report
         if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: report-smoke-${{ github.run_number }}
-          path: reports/html/
+          name: blob-report-smoke-${{ matrix.shard }}
+          path: blob-report
           retention-days: 7
 
-  # ── 3. Regression (nightly + main pushes only) ──────────────────────────────
+  # ── 3. Merge sharded reports ────────────────────────────────────────────────
+  merge-smoke-report:
+    name: Merge Smoke Report
+    needs: smoke
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          path: all-blob-reports
+          pattern: blob-report-smoke-*
+          merge-multiple: true
+      - run: npx playwright merge-reports --reporter html ./all-blob-reports
+      - uses: actions/upload-artifact@v4
+        with:
+          name: html-report-smoke-${{ github.run_number }}
+          path: playwright-report
+          retention-days: 14
+
+  # ── 4. Regression (nightly + main pushes only) ──────────────────────────────
   regression:
-    name: Regression Tests
+    name: Regression
     needs: smoke
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || github.ref == 'refs/heads/main'
@@ -66,19 +107,17 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: Run regression tests
-        run: npx playwright test --grep @regression --project=chromium
-      - name: Upload report
-        uses: actions/upload-artifact@v4
+      - run: npx playwright test --grep @regression --project=chromium
+      - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: report-regression-${{ github.run_number }}
-          path: reports/html/
+          name: blob-report-regression-${{ github.run_number }}
+          path: blob-report
           retention-days: 14
 
-  # ── 4. Accessibility (every PR) ─────────────────────────────────────────────
+  # ── 5. Accessibility ─────────────────────────────────────────────────────────
   accessibility:
-    name: Accessibility Tests
+    name: Accessibility
     needs: smoke
     runs-on: ubuntu-latest
     steps:
@@ -89,12 +128,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: Run accessibility tests
-        run: npx playwright test --grep @a11y --project=chromium
+      - run: npx playwright test --grep @a11y --project=chromium
 
-  # ── 5. Visual diffs (non-blocking) ──────────────────────────────────────────
+  # ── 6. Visual diffs (non-blocking) ──────────────────────────────────────────
   visual:
-    name: Visual Tests
+    name: Visual
     needs: smoke
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -106,17 +144,15 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: Run visual tests
-        run: npx playwright test --grep @visual --project=chromium
-      - name: Upload report
-        uses: actions/upload-artifact@v4
+      - run: npx playwright test --grep @visual --project=chromium
+      - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: report-visual-${{ github.run_number }}
-          path: reports/html/
+          name: blob-report-visual-${{ github.run_number }}
+          path: blob-report
           retention-days: 7
 
-  # ── 6. Slack notification ────────────────────────────────────────────────────
+  # ── 7. Slack notification ───────────────────────────────────────────────────
   notify:
     name: Slack Notification
     needs: [smoke, accessibility, visual]
@@ -140,7 +176,7 @@ jobs:
                   { "title": "Branch",       "value": "${{ github.ref_name }}",                     "short": true },
                   { "title": "Triggered by", "value": "${{ github.actor }}",                        "short": true },
                   { "title": "Smoke",        "value": "${{ needs.smoke.result }}",                  "short": true },
-                  { "title": "A11y",         "value": "${{ needs.accessibility.result }}",           "short": true },
+                  { "title": "A11y",         "value": "${{ needs.accessibility.result }}",          "short": true },
                   { "title": "Run",          "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}", "short": false }
                 ]
               }]
