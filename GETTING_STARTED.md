@@ -28,12 +28,12 @@ This guide walks you from zero to a working, CI-connected test suite. Follow it 
 
 ## 1. Prerequisites
 
-| Tool | Minimum version | Why |
-| --- | --- | --- |
-| [Node.js](https://nodejs.org) | 20 LTS | Runtime |
-| [Git](https://git-scm.com) | any recent | Version control |
-| [Docker](https://www.docker.com/products/docker-desktop/) | any recent | OWASP ZAP scans locally |
-| A code editor | — | [VS Code](https://code.visualstudio.com) recommended — install the [Playwright extension](https://marketplace.visualstudio.com/items?itemName=ms-playwright.playwright) |
+| Tool                                                      | Minimum version | Why                                                                                                                                                                     |
+| --------------------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Node.js](https://nodejs.org)                             | 20 LTS          | Runtime                                                                                                                                                                 |
+| [Git](https://git-scm.com)                                | any recent      | Version control                                                                                                                                                         |
+| [Docker](https://www.docker.com/products/docker-desktop/) | any recent      | OWASP ZAP scans locally                                                                                                                                                 |
+| A code editor                                             | —               | [VS Code](https://code.visualstudio.com) recommended — install the [Playwright extension](https://marketplace.visualstudio.com/items?itemName=ms-playwright.playwright) |
 
 Verify Node before you start:
 
@@ -143,14 +143,14 @@ npx playwright show-report
 
 Playwright's recommended priority — use the first option that works:
 
-| Priority | Locator | Example |
-| --- | --- | --- |
-| 1 | `getByRole` | `page.getByRole('button', { name: 'Submit' })` |
-| 2 | `getByLabel` | `page.getByLabel('Email address')` |
-| 3 | `getByPlaceholder` | `page.getByPlaceholder('Search...')` |
-| 4 | `getByText` | `page.getByText('Confirm order')` |
-| 5 | `getByTestId` | `page.getByTestId('submit-btn')` |
-| Avoid | CSS / XPath | `page.locator('.btn-primary')` |
+| Priority | Locator            | Example                                        |
+| -------- | ------------------ | ---------------------------------------------- |
+| 1        | `getByRole`        | `page.getByRole('button', { name: 'Submit' })` |
+| 2        | `getByLabel`       | `page.getByLabel('Email address')`             |
+| 3        | `getByPlaceholder` | `page.getByPlaceholder('Search...')`           |
+| 4        | `getByText`        | `page.getByText('Confirm order')`              |
+| 5        | `getByTestId`      | `page.getByTestId('submit-btn')`               |
+| Avoid    | CSS / XPath        | `page.locator('.btn-primary')`                 |
 
 **Why this order matters:** role and label selectors are tied to semantics and accessibility attributes that rarely change. CSS classes change with refactors. XPath breaks when structure changes.
 
@@ -174,7 +174,7 @@ import { Page, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 export class DashboardPage extends BasePage {
-  private heading      = this.page.getByRole('heading', { name: 'Dashboard' });
+  private heading = this.page.getByRole('heading', { name: 'Dashboard' });
   private newProjectBtn = this.page.getByRole('button', { name: 'New project' });
 
   async waitForLoad() {
@@ -205,6 +205,7 @@ test('can create a project @regression', async ({ page }) => {
 ```
 
 **Page Object rules:**
+
 - No assertions inside page objects — keep them in the test. Assertions belong to tests, actions belong to page objects.
 - One file per major page or flow, not one per component.
 - Locators are class fields — defined once, referenced by methods.
@@ -218,13 +219,13 @@ Fixtures are how you share setup across tests without copying `beforeEach` block
 ```typescript
 // src/fixtures/base.fixture.ts
 import { test as base, Page } from '@playwright/test';
-import { LoginPage }     from '../pages/LoginPage';
+import { LoginPage } from '../pages/LoginPage';
 import { DashboardPage } from '../pages/DashboardPage';
 
 type AppFixtures = {
-  loginPage:     LoginPage;
+  loginPage: LoginPage;
   dashboardPage: DashboardPage;
-  authedPage:    Page;
+  authedPage: Page;
 };
 
 export const test = base.extend<AppFixtures>({
@@ -235,7 +236,7 @@ export const test = base.extend<AppFixtures>({
     await use(new DashboardPage(page));
   },
   authedPage: async ({ browser }, use) => {
-    const ctx  = await browser.newContext({ storageState: 'auth.json' });
+    const ctx = await browser.newContext({ storageState: 'auth.json' });
     const page = await ctx.newPage();
     await use(page);
     await ctx.close();
@@ -351,6 +352,7 @@ test.describe('Projects API', () => {
 ```
 
 **API test rules:**
+
 - Each test is self-contained — create the data it needs, clean it up after.
 - Test the contract (status, schema), not business logic that's already covered by unit tests.
 - Use `request` (unauthenticated) for public endpoints; use `authedPage.request` or the `storageState` project for authenticated endpoints.
@@ -379,7 +381,7 @@ test.describe('Accessibility', () => {
     await page.goto('/dashboard');
     const { violations } = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
-      .exclude('#third-party-widget')   // exclude embeds you don't own
+      .exclude('#third-party-widget') // exclude embeds you don't own
       .analyze();
     expect(violations).toEqual([]);
   });
@@ -392,9 +394,9 @@ When violations are found, axe returns structured details. Make them readable in
 expect(violations, formatViolations(violations)).toEqual([]);
 
 function formatViolations(violations: axe.Result[]) {
-  return violations.map(v =>
-    `[${v.impact}] ${v.id}: ${v.description}\n  ${v.nodes.map(n => n.html).join('\n  ')}`
-  ).join('\n\n');
+  return violations
+    .map(v => `[${v.impact}] ${v.id}: ${v.description}\n  ${v.nodes.map(n => n.html).join('\n  ')}`)
+    .join('\n\n');
 }
 ```
 
@@ -436,6 +438,7 @@ npx playwright test --update-snapshots tests/visual/
 ```
 
 **Tips:**
+
 - Mask avatars, timestamps, and ads — anything that legitimately changes.
 - Run visual tests with `--project=chromium` only. Cross-browser screenshot diffs need separate baselines per OS/browser combination.
 - Keep `maxDiffPixels` tight (50–150). Loose thresholds let real regressions slip through.
@@ -491,6 +494,7 @@ npx playwright show-trace path/to/trace.zip
 ### VS Code extension
 
 Install the [Playwright VS Code extension](https://marketplace.visualstudio.com/items?itemName=ms-playwright.playwright). It adds:
+
 - A test panel to run/debug individual tests with one click
 - Inline "pick locator" tool — hover over any element and get its best-practice locator
 - Step-through debugging with breakpoints
@@ -509,13 +513,13 @@ Opens a browser that records your interactions and generates Playwright code in 
 
 Tags in test titles are matched by `--grep`. No external config needed.
 
-| Tag | Intent | Run in CI |
-| --- | --- | --- |
-| `@smoke` | Critical paths only — login, core action, key page load | Every push |
-| `@regression` | Full happy + unhappy path coverage | Nightly + release |
-| `@api` | REST contract tests | Every push |
-| `@a11y` | WCAG 2.1 AA scans | Every PR + nightly |
-| `@visual` | Screenshot diffs | Every PR (non-blocking) |
+| Tag           | Intent                                                  | Run in CI               |
+| ------------- | ------------------------------------------------------- | ----------------------- |
+| `@smoke`      | Critical paths only — login, core action, key page load | Every push              |
+| `@regression` | Full happy + unhappy path coverage                      | Nightly + release       |
+| `@api`        | REST contract tests                                     | Every push              |
+| `@a11y`       | WCAG 2.1 AA scans                                       | Every PR + nightly      |
+| `@visual`     | Screenshot diffs                                        | Every PR (non-blocking) |
 
 A test can have multiple tags:
 
@@ -524,6 +528,7 @@ test('checkout completes @smoke @regression', async ({ page }) => { ... });
 ```
 
 **Rules:**
+
 - `@smoke` tests must stay fast — target under 30 seconds per test, under 2 minutes for the whole smoke suite.
 - If a smoke test is slow, it belongs in `@regression`.
 - Do not add `@smoke` to every test. Smoke is triage coverage, not full coverage.
@@ -536,12 +541,12 @@ test('checkout completes @smoke @regression', async ({ page }) => { ... });
 
 Go to your repo: **Settings → Secrets and variables → Actions → New repository secret**
 
-| Secret | Required for |
-| --- | --- |
-| `BASE_URL` | All tests — target app URL |
-| `TEST_USER_EMAIL` | Auth and E2E tests |
-| `TEST_USER_PASSWORD` | Auth and E2E tests |
-| `SLACK_WEBHOOK_URL` | Slack notifications |
+| Secret                  | Required for                       |
+| ----------------------- | ---------------------------------- |
+| `BASE_URL`              | All tests — target app URL         |
+| `TEST_USER_EMAIL`       | Auth and E2E tests                 |
+| `TEST_USER_PASSWORD`    | Auth and E2E tests                 |
+| `SLACK_WEBHOOK_URL`     | Slack notifications                |
 | `LHCI_GITHUB_APP_TOKEN` | Lighthouse CI GitHub status checks |
 
 ### First CI run
@@ -553,11 +558,11 @@ Go to your repo: **Settings → Secrets and variables → Actions → New reposi
 
 ### Workflow files
 
-| File | Triggers | What it runs |
-| --- | --- | --- |
-| `.github/workflows/ci.yml` | push, PR | smoke + api → a11y → visual (nightly adds regression) |
-| `.github/workflows/security.yml` | push to main, nightly | CodeQL + ZAP baseline scan |
-| `.github/workflows/lighthouse.yml` | PR to main | Lighthouse CI performance check |
+| File                               | Triggers              | What it runs                                          |
+| ---------------------------------- | --------------------- | ----------------------------------------------------- |
+| `.github/workflows/ci.yml`         | push, PR              | smoke + api → a11y → visual (nightly adds regression) |
+| `.github/workflows/security.yml`   | push to main, nightly | CodeQL + ZAP baseline scan                            |
+| `.github/workflows/lighthouse.yml` | PR to main            | Lighthouse CI performance check                       |
 
 ### Downloading test reports from CI
 
@@ -606,12 +611,14 @@ Go to your repo: **Settings → Secrets and variables → Actions → New reposi
 ### What to put in smoke vs regression
 
 **Smoke** — the five to ten things that, if broken, mean the app is unusable:
+
 - Login and logout
 - Main navigation loads
 - Core paid feature works end-to-end
 - API health check returns 200
 
 **Regression** — everything else:
+
 - Form validation
 - Error states
 - Edge cases

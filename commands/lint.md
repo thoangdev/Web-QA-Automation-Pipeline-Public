@@ -47,13 +47,13 @@ src/pages/LoginPage.ts
 
 ## Common Issues and Fixes
 
-| Error | Fix |
-| --- | --- |
-| `Unexpected 'any' type` | Replace with a specific type or `unknown` |
-| `'X' is defined but never used` | Remove unused variable or import |
-| `Missing return type on function` | Add explicit return type annotation |
-| `Replace '...' with '...'` (Prettier) | Run `npm run lint -- --fix` |
-| `Property 'X' does not exist on type 'Y'` | Fix the type mismatch or assertion |
+| Error                                     | Fix                                       |
+| ----------------------------------------- | ----------------------------------------- |
+| `Unexpected 'any' type`                   | Replace with a specific type or `unknown` |
+| `'X' is defined but never used`           | Remove unused variable or import          |
+| `Missing return type on function`         | Add explicit return type annotation       |
+| `Replace '...' with '...'` (Prettier)     | Run `npm run lint -- --fix`               |
+| `Property 'X' does not exist on type 'Y'` | Fix the type mismatch or assertion        |
 
 ---
 

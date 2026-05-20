@@ -3,10 +3,15 @@ name: Security
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.editorconfig'
   pull_request:
     branches: [main]
   schedule:
-    - cron: '0 3 * * 1'  # weekly, Monday at 03:00 UTC
+    - cron: '0 3 * * 1' # weekly, Monday at 03:00 UTC
   workflow_dispatch:
 
 concurrency:

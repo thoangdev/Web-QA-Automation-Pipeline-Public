@@ -16,19 +16,20 @@ Scaffold a new Page Object Model class in `src/pages/` or a reusable component o
 
 ## Input
 
-| Field | Required | Description |
-| --- | --- | --- |
-| Page or component name | Yes | Becomes the class and file name |
-| Target URL | For pages | Where this page lives in the app |
-| Interactions needed | Yes | List of user actions to automate |
-| HTML or screenshot | No | Used to derive precise locators |
-| Full page or component? | Yes | Determines folder and base class |
+| Field                   | Required  | Description                      |
+| ----------------------- | --------- | -------------------------------- |
+| Page or component name  | Yes       | Becomes the class and file name  |
+| Target URL              | For pages | Where this page lives in the app |
+| Interactions needed     | Yes       | List of user actions to automate |
+| HTML or screenshot      | No        | Used to derive precise locators  |
+| Full page or component? | Yes       | Determines folder and base class |
 
 ---
 
 ## Output
 
 A new `.ts` file containing:
+
 - A class extending `BasePage` (full page) or using `Page` directly (component)
 - Private locator fields for every interactive element
 - Public action methods named for user intent

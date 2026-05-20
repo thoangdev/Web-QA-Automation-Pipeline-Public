@@ -1,0 +1,17 @@
+# Default owners — replace with your team's GitHub handles before adopting.
+*                       @your-org/qa
+
+# CI/CD workflows
+/.github/                @your-org/devex @your-org/qa
+
+# Page Object Model
+/src/pages/              @your-org/qa
+/src/components/         @your-org/qa
+
+# Fixtures and shared setup — touch with care, these affect every test
+/src/fixtures/           @your-org/qa-leads
+
+# Security and dependency policy
+/SECURITY.md             @your-org/security
+/.github/workflows/security.yml @your-org/security
+/.github/dependabot.yml  @your-org/security

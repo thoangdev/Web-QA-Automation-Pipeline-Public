@@ -9,6 +9,7 @@ Regenerate visual baseline screenshots after a deliberate UI change. Do not run 
 Only after a **confirmed, intentional** UI change — a redesign, new component, layout shift, or brand update that you have already reviewed and approved.
 
 Do not run this if:
+
 - You don't know why the visual test failed
 - The failure is intermittent
 - The change was not intentional
@@ -78,9 +79,6 @@ If visual tests are failing intermittently due to content that legitimately chan
 ```typescript
 await expect(page).toHaveScreenshot('page.png', {
   maxDiffPixels: 100,
-  mask: [
-    page.locator('[data-testid="user-avatar"]'),
-    page.locator('[data-testid="last-updated"]'),
-  ],
+  mask: [page.locator('[data-testid="user-avatar"]'), page.locator('[data-testid="last-updated"]')],
 });
 ```

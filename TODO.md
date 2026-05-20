@@ -8,15 +8,18 @@ This file is your checklist for swapping in your own application.
 ## Phase 1 — Verify the baseline works `~10 min`
 
 - [ ] **Install dependencies**
+
   ```bash
   npm install
   npx playwright install --with-deps chromium
   ```
 
 - [ ] **Run smoke tests against the default saucedemo target**
+
   ```bash
   npm run test:smoke
   ```
+
   Login + inventory smoke tests should pass green. If they don't, your network can't reach
   saucedemo.com — check connectivity before continuing.
 
@@ -30,6 +33,7 @@ This file is your checklist for swapping in your own application.
 ## Phase 2 — Point at your app `~30 min`
 
 - [ ] **Set target URL and credentials**
+
   ```bash
   cp .env.example .env.local
   # edit .env.local — BASE_URL, TEST_USER_USERNAME, TEST_USER_PASSWORD
@@ -45,7 +49,7 @@ This file is your checklist for swapping in your own application.
   - Keep the patterns: private locators, no `expect()` inside POMs, `waitForLoad()` method.
 
 - [ ] **Replace `test-data/users.json` and `test-data/products.json`** with your data shape.
-  Update `src/utils/testData.ts` to match.
+      Update `src/utils/testData.ts` to match.
 
 - [ ] **Run the smoke suite against your app**
   ```bash
@@ -98,12 +102,12 @@ green out of the box.
 
 Add these GitHub repository secrets (**Settings → Secrets and variables → Actions**):
 
-| Secret | Required |
-| --- | --- |
-| `BASE_URL` | Yes — your staging URL |
-| `TEST_USER_USERNAME` | Yes |
-| `TEST_USER_PASSWORD` | Yes |
-| `SLACK_WEBHOOK_URL` | Optional — for Slack notifications |
+| Secret                  | Required                                   |
+| ----------------------- | ------------------------------------------ |
+| `BASE_URL`              | Yes — your staging URL                     |
+| `TEST_USER_USERNAME`    | Yes                                        |
+| `TEST_USER_PASSWORD`    | Yes                                        |
+| `SLACK_WEBHOOK_URL`     | Optional — for Slack notifications         |
 | `LHCI_GITHUB_APP_TOKEN` | Optional — for Lighthouse PR status checks |
 
 Once set, the next CI run will use your secrets in place of the saucedemo defaults.

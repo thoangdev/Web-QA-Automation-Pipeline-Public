@@ -3,10 +3,20 @@ name: CI
 on:
   push:
     branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.editorconfig'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.editorconfig'
   schedule:
-    - cron: '0 2 * * *'  # nightly at 02:00 UTC
+    - cron: '0 2 * * *' # nightly at 02:00 UTC
   workflow_dispatch:
 
 concurrency:
@@ -17,7 +27,7 @@ permissions:
   contents: read
 
 env:
-  BASE_URL:           ${{ secrets.BASE_URL    || 'https://www.saucedemo.com' }}
+  BASE_URL: ${{ secrets.BASE_URL    || 'https://www.saucedemo.com' }}
   TEST_USER_USERNAME: ${{ secrets.TEST_USER_USERNAME || 'standard_user' }}
   TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD || 'secret_sauce' }}
 
@@ -37,11 +47,13 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
 
-  # ── 2. Smoke + API (sharded, every push) ────────────────────────────────────
+  # ── 2. Smoke + API (sharded) ────────────────────────────────────────────────
   smoke:
     name: Smoke & API (shard ${{ matrix.shard }}/${{ strategy.job-total }})
     needs: lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -53,13 +65,30 @@ jobs:
           node-version: '20'
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - name: Run smoke + API tests
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browsers
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install system deps only
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Run smoke + API
         run: |
           npx playwright test \
             --grep "@smoke|@api" \
+            --grep-invert "@quarantine" \
             --project=chromium \
             --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+
       - name: Upload blob report
         if: always()
         uses: actions/upload-artifact@v4
@@ -68,12 +97,15 @@ jobs:
           path: blob-report
           retention-days: 7
 
-  # ── 3. Merge sharded reports ────────────────────────────────────────────────
+  # ── 3. Merge sharded report + PR comment ────────────────────────────────────
   merge-smoke-report:
     name: Merge Smoke Report
     needs: smoke
     if: always()
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -81,19 +113,90 @@ jobs:
           node-version: '20'
           cache: npm
       - run: npm ci
+
       - uses: actions/download-artifact@v4
         with:
           path: all-blob-reports
           pattern: blob-report-smoke-*
           merge-multiple: true
-      - run: npx playwright merge-reports --reporter html ./all-blob-reports
+
+      - run: npx playwright merge-reports --reporter html,json ./all-blob-reports
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: merged-results.json
+
       - uses: actions/upload-artifact@v4
         with:
           name: html-report-smoke-${{ github.run_number }}
           path: playwright-report
           retention-days: 14
 
-  # ── 4. Regression (nightly + main pushes only) ──────────────────────────────
+      - uses: actions/upload-artifact@v4
+        with:
+          name: results-json-${{ github.run_number }}
+          path: merged-results.json
+          retention-days: 90
+
+      - name: PR comment with failure summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (!fs.existsSync('merged-results.json')) return;
+            const data = JSON.parse(fs.readFileSync('merged-results.json', 'utf8'));
+            const stats = data.stats || {};
+            const expected = stats.expected ?? 0;
+            const unexpected = stats.unexpected ?? 0;
+            const flaky = stats.flaky ?? 0;
+            const skipped = stats.skipped ?? 0;
+            const duration = Math.round((stats.duration ?? 0) / 1000);
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            const failed = [];
+            const walk = (suites = []) => suites.forEach(s => {
+              (s.specs || []).forEach(spec => {
+                (spec.tests || []).forEach(t => {
+                  if (t.results?.some(r => r.status === 'failed' || r.status === 'timedOut')) {
+                    failed.push(`- \`${spec.title}\` (${spec.file})`);
+                  }
+                });
+              });
+              walk(s.suites);
+            });
+            walk(data.suites);
+
+            const emoji = unexpected === 0 ? '✅' : '❌';
+            const body = [
+              `## ${emoji} Smoke & API`,
+              ``,
+              `| Passed | Failed | Flaky | Skipped | Duration |`,
+              `| --- | --- | --- | --- | --- |`,
+              `| ${expected} | ${unexpected} | ${flaky} | ${skipped} | ${duration}s |`,
+              ``,
+              failed.length ? `### Failures\n\n${failed.join('\n')}\n` : '',
+              `[Full HTML report](${runUrl}#artifacts) · [Run logs](${runUrl})`,
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const marker = '## ' + emoji + ' Smoke & API';
+            const existing = comments.find(c => c.body?.startsWith('## ✅ Smoke & API') || c.body?.startsWith('## ❌ Smoke & API'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                comment_id: existing.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: context.issue.number, body,
+              });
+            }
+
+  # ── 4. Regression ────────────────────────────────────────────────────────────
   regression:
     name: Regression
     needs: smoke
@@ -106,8 +209,16 @@ jobs:
           node-version: '20'
           cache: npm
       - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test --grep @regression --project=chromium
+      - run: |
+          npx playwright test \
+            --grep @regression \
+            --grep-invert "@quarantine" \
+            --project=chromium
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -115,7 +226,35 @@ jobs:
           path: blob-report
           retention-days: 14
 
-  # ── 5. Accessibility ─────────────────────────────────────────────────────────
+  # ── 5. Cross-browser smoke (nightly only) ───────────────────────────────────
+  cross-browser:
+    name: Cross-browser smoke — ${{ matrix.browser }}
+    needs: smoke
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: |
+          npx playwright test \
+            --grep "@smoke" \
+            --grep-invert "@quarantine|@visual" \
+            --project=${{ matrix.browser }}
+
+  # ── 6. Accessibility ────────────────────────────────────────────────────────
   accessibility:
     name: Accessibility
     needs: smoke
@@ -127,10 +266,14 @@ jobs:
           node-version: '20'
           cache: npm
       - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test --grep @a11y --project=chromium
+      - run: npx playwright test --grep @a11y --grep-invert "@quarantine" --project=chromium
 
-  # ── 6. Visual diffs (non-blocking) ──────────────────────────────────────────
+  # ── 7. Visual (non-blocking) ────────────────────────────────────────────────
   visual:
     name: Visual
     needs: smoke
@@ -143,6 +286,10 @@ jobs:
           node-version: '20'
           cache: npm
       - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test --grep @visual --project=chromium
       - uses: actions/upload-artifact@v4
@@ -152,11 +299,41 @@ jobs:
           path: blob-report
           retention-days: 7
 
-  # ── 7. Slack notification ───────────────────────────────────────────────────
+  # ── 8. Quarantine (non-blocking — surfaces flaky tests) ─────────────────────
+  quarantine:
+    name: Quarantined Tests
+    needs: smoke
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Check for quarantined tests
+        id: probe
+        run: |
+          if npx playwright test --grep @quarantine --list --project=chromium 2>/dev/null | grep -q quarantine; then
+            echo "has_tests=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_tests=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.probe.outputs.has_tests == 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.probe.outputs.has_tests == 'true'
+        run: npx playwright test --grep @quarantine --project=chromium
+
+  # ── 9. Slack notification ───────────────────────────────────────────────────
   notify:
     name: Slack Notification
     needs: [smoke, accessibility, visual]
-    if: always()
+    if: always() && (github.event_name == 'push' || github.event_name == 'schedule')
     runs-on: ubuntu-latest
     env:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -57,13 +57,13 @@ Receive request
 
 ## Output Rules
 
-| Test type | Folder | File suffix | Required tag |
-| --- | --- | --- | --- |
-| Critical path | `tests/smoke/` | `.smoke.spec.ts` | `@smoke` |
-| Full coverage | `tests/regression/` | `.regression.spec.ts` | `@regression` |
-| REST API | `tests/api/` | `.api.spec.ts` | `@api` |
-| Accessibility | `tests/accessibility/` | `.a11y.spec.ts` | `@a11y` |
-| Visual diff | `tests/visual/` | `.visual.spec.ts` | `@visual` |
+| Test type     | Folder                 | File suffix           | Required tag  |
+| ------------- | ---------------------- | --------------------- | ------------- |
+| Critical path | `tests/smoke/`         | `.smoke.spec.ts`      | `@smoke`      |
+| Full coverage | `tests/regression/`    | `.regression.spec.ts` | `@regression` |
+| REST API      | `tests/api/`           | `.api.spec.ts`        | `@api`        |
+| Accessibility | `tests/accessibility/` | `.a11y.spec.ts`       | `@a11y`       |
+| Visual diff   | `tests/visual/`        | `.visual.spec.ts`     | `@visual`     |
 
 ---
 

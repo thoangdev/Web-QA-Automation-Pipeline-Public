@@ -17,9 +17,6 @@
       "Bash(ls *)",
       "Bash(cat .env.example)"
     ],
-    "deny": [
-      "Bash(cat .env.local)",
-      "Bash(cat .auth/*)"
-    ]
+    "deny": ["Bash(cat .env.local)", "Bash(cat .auth/*)"]
   }
 }

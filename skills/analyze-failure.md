@@ -20,14 +20,14 @@ Read Playwright test output, JSON results, or trace artifacts and identify the r
 
 Provide one or more of:
 
-| Input | Where to find it |
-| --- | --- |
-| Terminal error output | Test run stdout |
-| JSON results | `reports/results.json` |
-| HTML report | `reports/html/index.html` — open with `npx playwright show-report` |
-| Trace file | `test-results/<test-name>/trace.zip` — open with `npx playwright show-trace` |
-| Failing test name and file | Shown in error output |
-| Screenshot diff image | Attached to the HTML report for `@visual` failures |
+| Input                      | Where to find it                                                             |
+| -------------------------- | ---------------------------------------------------------------------------- |
+| Terminal error output      | Test run stdout                                                              |
+| JSON results               | `reports/results.json`                                                       |
+| HTML report                | `reports/html/index.html` — open with `npx playwright show-report`           |
+| Trace file                 | `test-results/<test-name>/trace.zip` — open with `npx playwright show-trace` |
+| Failing test name and file | Shown in error output                                                        |
+| Screenshot diff image      | Attached to the HTML report for `@visual` failures                           |
 
 ---
 
@@ -51,13 +51,13 @@ Identify the exact assertion or locator call that failed. Note the file and line
 
 **Step 2 — Classify the failure**
 
-| Category | Key signals |
-| --- | --- |
-| Test bug | `Locator not found`, `Expected ... to equal ...`, selector stale after UI refactor |
-| App bug | Unexpected page content, wrong HTTP status, feature not working as specified |
-| Environment | Passes locally, fails in CI; missing `BASE_URL`; auth session expired |
-| Flake | Intermittent, no code change triggered it, often a timing or data isolation issue |
-| Visual drift | `Screenshot comparison failed`, `maxDiffPixels exceeded` |
+| Category     | Key signals                                                                        |
+| ------------ | ---------------------------------------------------------------------------------- |
+| Test bug     | `Locator not found`, `Expected ... to equal ...`, selector stale after UI refactor |
+| App bug      | Unexpected page content, wrong HTTP status, feature not working as specified       |
+| Environment  | Passes locally, fails in CI; missing `BASE_URL`; auth session expired              |
+| Flake        | Intermittent, no code change triggered it, often a timing or data isolation issue  |
+| Visual drift | `Screenshot comparison failed`, `maxDiffPixels exceeded`                           |
 
 **Step 3 — Investigate based on category**
 
@@ -98,11 +98,11 @@ Identify the exact assertion or locator call that failed. Note the file and line
 
 ## Common Patterns and Fixes
 
-| Error message | Likely cause | Fix |
-| --- | --- | --- |
-| `locator.click: Element is not visible` | Stale CSS selector | Replace with `getByRole` or `getByTestId` |
-| `Timeout waiting for ...` | Missing explicit wait | Add `waitForURL`, `waitForResponse`, or `expect(...).toBeVisible()` |
-| `expect(received).toBe(expected)` with wrong value | App behavior changed | Check if app bug; if test assertion wrong, fix the expected value |
-| `Screenshot comparison failed` | UI changed | Inspect diff in report; confirm with user before updating |
-| `storageState file not found` | Auth setup project did not run | Verify `dependencies: ['setup']` in `playwright.config.ts` projects |
-| `net::ERR_NAME_NOT_RESOLVED` | Wrong `BASE_URL` | Check `.env.local` and GitHub Actions secret |
+| Error message                                      | Likely cause                   | Fix                                                                 |
+| -------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------- |
+| `locator.click: Element is not visible`            | Stale CSS selector             | Replace with `getByRole` or `getByTestId`                           |
+| `Timeout waiting for ...`                          | Missing explicit wait          | Add `waitForURL`, `waitForResponse`, or `expect(...).toBeVisible()` |
+| `expect(received).toBe(expected)` with wrong value | App behavior changed           | Check if app bug; if test assertion wrong, fix the expected value   |
+| `Screenshot comparison failed`                     | UI changed                     | Inspect diff in report; confirm with user before updating           |
+| `storageState file not found`                      | Auth setup project did not run | Verify `dependencies: ['setup']` in `playwright.config.ts` projects |
+| `net::ERR_NAME_NOT_RESOLVED`                       | Wrong `BASE_URL`               | Check `.env.local` and GitHub Actions secret                        |

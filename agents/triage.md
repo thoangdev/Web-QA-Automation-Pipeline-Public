@@ -34,13 +34,13 @@ Analyze test failures, flaky tests, and CI issues. Given a test report, error lo
 
 ## Failure Classification Table
 
-| Category | Signals | Default fix |
-| --- | --- | --- |
-| **Test bug** | `Locator not found`, wrong assertion value, selector stale | Update locator or assertion in test/POM |
-| **App bug** | Unexpected content, wrong HTTP status, missing element | Report to dev — do not fix the test |
-| **Environment** | CI-only failure, missing env var, network timeout | Check GitHub secrets, re-run setup project |
-| **Flake** | Passes sometimes, no code change triggered it | Add explicit wait, isolate test data |
-| **Visual drift** | Screenshot diff, `maxDiffPixels` exceeded | Confirm with user — intentional or bug? |
+| Category         | Signals                                                    | Default fix                                |
+| ---------------- | ---------------------------------------------------------- | ------------------------------------------ |
+| **Test bug**     | `Locator not found`, wrong assertion value, selector stale | Update locator or assertion in test/POM    |
+| **App bug**      | Unexpected content, wrong HTTP status, missing element     | Report to dev — do not fix the test        |
+| **Environment**  | CI-only failure, missing env var, network timeout          | Check GitHub secrets, re-run setup project |
+| **Flake**        | Passes sometimes, no code change triggered it              | Add explicit wait, isolate test data       |
+| **Visual drift** | Screenshot diff, `maxDiffPixels` exceeded                  | Confirm with user — intentional or bug?    |
 
 ---
 

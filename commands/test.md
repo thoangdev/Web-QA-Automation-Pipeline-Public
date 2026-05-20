@@ -84,8 +84,8 @@ npx playwright test --project=chromium --workers 2
 
 ## When to Use
 
-| Situation | Use instead |
-| --- | --- |
-| Quick check after a single change | `commands/smoke.md` |
-| Debugging one failing test | `--debug` flag |
-| Pre-release full cross-browser | `npx playwright test` (no `--project`) |
+| Situation                         | Use instead                            |
+| --------------------------------- | -------------------------------------- |
+| Quick check after a single change | `commands/smoke.md`                    |
+| Debugging one failing test        | `--debug` flag                         |
+| Pre-release full cross-browser    | `npx playwright test` (no `--project`) |

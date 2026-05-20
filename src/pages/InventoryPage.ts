@@ -47,6 +47,8 @@ export class InventoryPage extends BasePage {
   }
 
   async openItem(itemName: string): Promise<void> {
-    await this.itemCard(itemName).getByTestId(/^item-\d+-title-link$/).click();
+    await this.itemCard(itemName)
+      .getByTestId(/^item-\d+-title-link$/)
+      .click();
   }
 }

@@ -4,7 +4,6 @@ import * as dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 const isCI = !!process.env.CI;
-const STORAGE_STATE = '.auth/user.json';
 // Optional: run against the system-installed Chrome instead of Playwright's
 // bundled chromium. Useful on host OSes where Playwright has no prebuilt binary.
 const chromeChannel = process.env.PW_CHROMIUM_CHANNEL || undefined;
@@ -47,30 +46,24 @@ export default defineConfig({
     },
   },
 
+  // Storage state is provided by the per-worker `storageState` fixture in
+  // src/fixtures/base.fixture.ts — each worker logs in once and isolates
+  // its session from other workers.
   projects: [
-    {
-      name: 'setup',
-      testDir: './src/fixtures',
-      testMatch: /global\.auth\.setup\.ts$/,
-    },
     {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        storageState: STORAGE_STATE,
         ...(chromeChannel ? { channel: chromeChannel } : {}),
       },
-      dependencies: ['setup'],
     },
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'], storageState: STORAGE_STATE },
-      dependencies: ['setup'],
+      use: { ...devices['Desktop Firefox'] },
     },
     {
       name: 'webkit',
-      use: { ...devices['Desktop Safari'], storageState: STORAGE_STATE },
-      dependencies: ['setup'],
+      use: { ...devices['Desktop Safari'] },
     },
   ],
 });

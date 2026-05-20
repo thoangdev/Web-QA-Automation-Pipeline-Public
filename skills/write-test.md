@@ -16,19 +16,20 @@ Produce a complete, runnable Playwright test file that matches this project's co
 
 ## Input
 
-| Field | Required | Description |
-| --- | --- | --- |
-| Feature or behavior | Yes | What the test should verify |
-| Test type | Yes | smoke / regression / api / a11y / visual |
-| Target page or URL | Yes | Where the interaction happens |
-| Auth required | Yes | Whether the test needs a logged-in user |
-| Existing page object | No | Path to the POM class if one exists |
+| Field                | Required | Description                              |
+| -------------------- | -------- | ---------------------------------------- |
+| Feature or behavior  | Yes      | What the test should verify              |
+| Test type            | Yes      | smoke / regression / api / a11y / visual |
+| Target page or URL   | Yes      | Where the interaction happens            |
+| Auth required        | Yes      | Whether the test needs a logged-in user  |
+| Existing page object | No       | Path to the POM class if one exists      |
 
 ---
 
 ## Output
 
 A complete `.spec.ts` file in the correct `tests/` subfolder containing:
+
 - Correct import (`@playwright/test` or `src/fixtures/base.fixture.ts`)
 - Semantic locators (no CSS, no XPath)
 - The correct tag embedded in the test title
@@ -56,25 +57,30 @@ A complete `.spec.ts` file in the correct `tests/` subfolder containing:
 ## Type-specific Rules
 
 ### `@smoke`
+
 - Under 30 seconds per test
 - Happy path only — no error states
 - Must be the absolute minimum to verify the feature works
 
 ### `@regression`
+
 - Covers happy path + key error states + edge cases
 - Can be slower — runs nightly, not on every push
 
 ### `@api`
+
 - Use Playwright's `request` fixture — no Axios, no node-fetch
 - Each test is self-contained: create data → assert → clean up
 - Test the contract (status code, schema shape) — not business logic already unit-tested
 
 ### `@a11y`
+
 - Always call `.withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])`
 - Use `.exclude()` for third-party embeds you do not own
 - Make violations readable with a format helper
 
 ### `@visual`
+
 - Always `--project=chromium` only
 - Always mask dynamic content: avatars, timestamps, ads
 - Keep `maxDiffPixels` between 50 and 150
@@ -102,10 +108,7 @@ test('user can log in @smoke', async ({ page }) => {
   const loginPage = new LoginPage(page);
 
   // Act
-  await loginPage.login(
-    process.env.TEST_USER_EMAIL!,
-    process.env.TEST_USER_PASSWORD!,
-  );
+  await loginPage.login(process.env.TEST_USER_EMAIL!, process.env.TEST_USER_PASSWORD!);
 
   // Assert
   await expect(page).toHaveURL('/dashboard');

@@ -18,6 +18,7 @@ Identify the best Playwright locator for a UI element — the most stable, seman
 ## Input
 
 One or more of:
+
 - Element description in plain language (e.g., "the submit button in the checkout form")
 - HTML snippet of the element
 - A broken or fragile selector that needs replacing
@@ -35,15 +36,15 @@ The recommended Playwright locator expression with a brief explanation of why it
 
 Work down this list — stop at the first option that uniquely identifies the element:
 
-| Priority | Locator | Use when |
-| --- | --- | --- |
-| 1 | `page.getByRole('button', { name: 'Sign in' })` | Element has a role and accessible name |
-| 2 | `page.getByLabel('Email address')` | Form field with an associated `<label>` |
-| 3 | `page.getByPlaceholder('Search...')` | Input with a `placeholder` attribute |
-| 4 | `page.getByText('Confirm order')` | Element with unique visible text |
-| 5 | `page.getByTestId('submit-btn')` | `data-testid` attribute is present |
-| Avoid | `page.locator('.btn-primary')` | CSS class — fragile, changes with refactors |
-| Never | `page.locator('//div[2]/button')` | XPath — breaks on structural changes |
+| Priority | Locator                                         | Use when                                    |
+| -------- | ----------------------------------------------- | ------------------------------------------- |
+| 1        | `page.getByRole('button', { name: 'Sign in' })` | Element has a role and accessible name      |
+| 2        | `page.getByLabel('Email address')`              | Form field with an associated `<label>`     |
+| 3        | `page.getByPlaceholder('Search...')`            | Input with a `placeholder` attribute        |
+| 4        | `page.getByText('Confirm order')`               | Element with unique visible text            |
+| 5        | `page.getByTestId('submit-btn')`                | `data-testid` attribute is present          |
+| Avoid    | `page.locator('.btn-primary')`                  | CSS class — fragile, changes with refactors |
+| Never    | `page.locator('//div[2]/button')`               | XPath — breaks on structural changes        |
 
 ---
 
@@ -75,10 +76,10 @@ If the same locator matches multiple elements, scope it to a container first:
 
 ```typescript
 // Too broad
-page.getByRole('button', { name: 'Delete' })
+page.getByRole('button', { name: 'Delete' });
 
 // Scoped to a specific row
-page.getByRole('row', { name: 'Project Alpha' }).getByRole('button', { name: 'Delete' })
+page.getByRole('row', { name: 'Project Alpha' }).getByRole('button', { name: 'Delete' });
 ```
 
 ---
@@ -96,10 +97,10 @@ page.getByRole('row', { name: 'Project Alpha' }).getByRole('button', { name: 'De
 
 ```typescript
 // Recommended
-page.getByRole('button', { name: 'Sign in' })
+page.getByRole('button', { name: 'Sign in' });
 // Reason: button has role="button" and visible text "Sign in"
 
 // If data-testid needed
-page.getByTestId('login-submit')
+page.getByTestId('login-submit');
 // Add to frontend: <button data-testid="login-submit">Sign in</button>
 ```

@@ -17,12 +17,12 @@ Execute the Playwright test suite in the correct mode for the current task and s
 
 ## Input
 
-| Field | Default | Options |
-| --- | --- | --- |
-| Scope | all tests | tag, folder, file name, test name |
-| Browser | chromium | chromium, firefox, webkit, all |
-| Mode | headless | headed, debug, UI |
-| Retries | per config | override with `--retries` |
+| Field   | Default    | Options                           |
+| ------- | ---------- | --------------------------------- |
+| Scope   | all tests  | tag, folder, file name, test name |
+| Browser | chromium   | chromium, firefox, webkit, all    |
+| Mode    | headless   | headed, debug, UI                 |
+| Retries | per config | override with `--retries`         |
 
 ---
 
@@ -71,6 +71,7 @@ npx playwright show-trace test-results/<test>/trace.zip
 ## Output
 
 Tests produce:
+
 - Terminal pass/fail summary
 - HTML report at `reports/html/` — open with `npx playwright show-report`
 - Trace files at `test-results/` on failure (when `trace: 'on-first-retry'` is set)
@@ -80,15 +81,15 @@ Tests produce:
 
 ## Decision Guide
 
-| Situation | Command to use |
-| --- | --- |
-| After any code change, quick check | `--grep @smoke --project=chromium` |
-| Before pushing a branch | `--grep "@smoke\|@api" --project=chromium` |
-| Debugging a specific failure | `--debug` on the failing file |
-| Exploring interactively | `--ui` |
-| Reproducing flake | `--repeat-each 5` on the flaky file |
-| Pre-release full check | `npx playwright test` (all browsers) |
-| Writing a new test | `--headed` to see the browser |
+| Situation                          | Command to use                             |
+| ---------------------------------- | ------------------------------------------ |
+| After any code change, quick check | `--grep @smoke --project=chromium`         |
+| Before pushing a branch            | `--grep "@smoke\|@api" --project=chromium` |
+| Debugging a specific failure       | `--debug` on the failing file              |
+| Exploring interactively            | `--ui`                                     |
+| Reproducing flake                  | `--repeat-each 5` on the flaky file        |
+| Pre-release full check             | `npx playwright test` (all browsers)       |
+| Writing a new test                 | `--headed` to see the browser              |
 
 ---
 

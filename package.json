@@ -25,8 +25,17 @@
     "format": "prettier --write \"**/*.{ts,json,yml,md}\"",
     "format:check": "prettier --check \"**/*.{ts,json,yml,md}\"",
     "audit": "npm audit --omit=dev --audit-level=high",
-    "prepare:auth": "playwright test --project=setup",
-    "clean": "rm -rf reports test-results blob-report .auth/user.json"
+    "clean": "rm -rf reports test-results blob-report .auth",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,js,mjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,yml,md}": [
+      "prettier --write"
+    ]
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
@@ -34,8 +43,11 @@
     "@types/node": "^25.0.0",
     "dotenv": "^17.4.2",
     "eslint": "^10.4.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.5",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.4"
+    "typescript-eslint": "^8.59.4",
+    "zod": "^4.4.3"
   }
 }

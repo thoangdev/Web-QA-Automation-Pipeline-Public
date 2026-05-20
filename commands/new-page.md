@@ -32,6 +32,7 @@ Use `skills/create-page-object.md`.
 File: `src/pages/<Name>Page.ts`
 
 Requirements:
+
 - Extends `BasePage`
 - All locators are `private readonly`
 - Methods are named for user actions
@@ -45,6 +46,7 @@ Use `skills/write-test.md`.
 File: `tests/smoke/<page-name>.smoke.spec.ts`
 
 Requirements:
+
 - Tag: `@smoke`
 - Covers the single most critical happy path
 - Completes in under 30 seconds
@@ -55,6 +57,7 @@ Requirements:
 File: `tests/regression/<page-name>.regression.spec.ts`
 
 Requirements:
+
 - Tag: `@regression`
 - Covers happy path + key error states + edge cases
 
@@ -88,11 +91,11 @@ tests/regression/<page-name>.regression.spec.ts   ← optional
 
 ## Naming Rules
 
-| What | Convention | Example |
-| --- | --- | --- |
-| Page object class | PascalCase + `Page` suffix | `ProjectsPage` |
-| Page object file | PascalCase + `Page.ts` | `ProjectsPage.ts` |
-| Smoke test file | kebab-case + `.smoke.spec.ts` | `projects.smoke.spec.ts` |
+| What                 | Convention                         | Example                       |
+| -------------------- | ---------------------------------- | ----------------------------- |
+| Page object class    | PascalCase + `Page` suffix         | `ProjectsPage`                |
+| Page object file     | PascalCase + `Page.ts`             | `ProjectsPage.ts`             |
+| Smoke test file      | kebab-case + `.smoke.spec.ts`      | `projects.smoke.spec.ts`      |
 | Regression test file | kebab-case + `.regression.spec.ts` | `projects.regression.spec.ts` |
 
 ---

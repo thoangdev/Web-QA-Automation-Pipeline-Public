@@ -22,10 +22,7 @@ export class CartPage extends BasePage {
   }
 
   async removeItem(itemName: string): Promise<void> {
-    await this.items
-      .filter({ hasText: itemName })
-      .getByRole('button', { name: 'Remove' })
-      .click();
+    await this.items.filter({ hasText: itemName }).getByRole('button', { name: 'Remove' }).click();
   }
 
   async proceedToCheckout(): Promise<void> {
