@@ -9,6 +9,8 @@ An enterprise-grade QA pipeline for SaaS web apps. Clone, point at your app, shi
 confidence. E2E · API · Visual · Accessibility · Performance · Security — from a single
 toolchain.
 
+![QA Automation Template Promo](https://i.ibb.co/99xYMqHN/43bf42d3-9411-4fcf-ba86-1bb1864e8e7c.png)
+
 The template ships **pre-wired against [saucedemo.com](https://www.saucedemo.com)** so it
 works the moment you clone it. Adopt it by swapping `BASE_URL` to your app and adapting
 the page objects.
