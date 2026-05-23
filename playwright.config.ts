@@ -10,8 +10,8 @@ const chromeChannel = process.env.PW_CHROMIUM_CHANNEL || undefined;
 
 export default defineConfig({
   testDir: './tests',
-  globalSetup: require.resolve('./src/fixtures/global.setup.ts'),
-  globalTeardown: require.resolve('./src/fixtures/global.teardown.ts'),
+  globalSetup: './src/fixtures/global.setup.ts',
+  globalTeardown: './src/fixtures/global.teardown.ts',
 
   fullyParallel: true,
   forbidOnly: isCI,

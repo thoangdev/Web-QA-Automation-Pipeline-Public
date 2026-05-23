@@ -32,13 +32,14 @@ the page objects.
 8. [Tagging Strategy](#tagging-strategy)
 9. [Playwright CLI Reference](#playwright-cli-reference)
 10. [Best Practices & Guardrails](#best-practices--guardrails)
-11. [Security](#security)
-12. [CI / CD](#ci--cd)
-13. [Environment Variables](#environment-variables)
-14. [Scripts](#scripts)
-15. [Pre-commit hooks](#pre-commit-hooks)
-16. [Adapting to Your App](#adapting-to-your-app)
-17. [Using with Claude Code](#using-with-claude-code)
+11. [Branch Protection & Merge Workflow](#branch-protection--merge-workflow)
+12. [Security](#security)
+13. [CI / CD](#ci--cd)
+14. [Environment Variables](#environment-variables)
+15. [Scripts](#scripts)
+16. [Pre-commit hooks](#pre-commit-hooks)
+17. [Adapting to Your App](#adapting-to-your-app)
+18. [Using with Claude Code](#using-with-claude-code)
 
 ---
 
@@ -74,6 +75,7 @@ the page objects.
 | CI/CD              | GitHub Actions                                                               | Free tier      |
 | Slack alerts       | Slack Incoming Webhooks                                                      | Free           |
 | AI browser control | [@playwright/mcp](https://github.com/microsoft/playwright-mcp)               | Free / OSS     |
+| Jira integration   | [mcp-atlassian](https://github.com/sooperset/mcp-atlassian) + `JiraApi.ts`   | Free / OSS     |
 
 ---
 
@@ -117,7 +119,8 @@ tests in under 7 seconds locally.
 │   │   └── Header.ts             cart badge, menu, logout, reset
 │   │
 │   ├── api/                      typed REST wrappers with zod schemas
-│   │   └── SauceDemoApi.ts
+│   │   ├── SauceDemoApi.ts       pattern reference — mirrors Jira wrapper shape
+│   │   └── JiraApi.ts            Jira REST wrapper (getTicket, createDefect, etc.)
 │   │
 │   ├── fixtures/                 Playwright test extensions
 │   │   ├── base.fixture.ts       page objects + worker-scoped auth
@@ -130,7 +133,8 @@ tests in under 7 seconds locally.
 │   │
 │   └── utils/
 │       ├── testData.ts           zod-validated JSON loader
-│       └── random.ts             crypto-backed random helpers
+│       ├── random.ts             crypto-backed random helpers
+│       └── environmentCheck.ts  exponential backoff poller for BASE_URL
 │
 ├── tests/
 │   ├── smoke/                    @smoke — critical path (< 2 min total)
@@ -143,19 +147,48 @@ tests in under 7 seconds locally.
 │   ├── users.json
 │   └── products.json
 │
+├── agents/                       Claude agent definitions
+│   ├── test-writer.md            write tests from feature descriptions
+│   ├── triage.md                 debug failing or flaky tests
+│   ├── pom-builder.md            create new Page Object classes
+│   └── jira-qa-runner.md         full Jira ticket → test → report → defect cycle
+│
+├── skills/                       Claude skill definitions (atomic capabilities)
+│   ├── write-test.md
+│   ├── create-page-object.md
+│   ├── generate-locator.md
+│   ├── analyze-failure.md
+│   ├── run-tests.md
+│   ├── pull-jira-ticket.md       extract AC from Jira tickets
+│   ├── self-heal-test.md         one-attempt selector/timing fix
+│   ├── write-run-report.md       write reports/runs/YYYY-MM-DD-<ticket>.md
+│   ├── create-jira-defect.md     dedup-checked defect creation
+│   └── store-qa-memory.md        persist patterns to Claude memory
+│
+├── commands/                     Claude command playbooks
+│   ├── test.md
+│   ├── smoke.md
+│   ├── lint.md
+│   ├── update-snapshots.md
+│   ├── new-page.md
+│   ├── jira-qa-run.md            end-to-end Jira QA runbook
+│   └── check-environment.md      poll BASE_URL until ready
+│
 ├── docs/
-│   └── flake-handling.md         expect.poll · test.slow · @quarantine
+│   ├── flake-handling.md         expect.poll · test.slow · @quarantine
+│   └── contacts.md               team escalation, Jira keys, token rotation
 │
 ├── .github/
 │   ├── workflows/                ci · security · lighthouse
 │   ├── ISSUE_TEMPLATE/
-│   ├── CODEOWNERS
+│   ├── CODEOWNERS                auto-assign reviewers per path
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── dependabot.yml
 │
 ├── .husky/                       pre-commit + pre-push hooks
 ├── .auth/                        gitignored — per-worker storage state
 ├── reports/                      gitignored — HTML + JSON output
+│   └── runs/                     per-run Jira workflow reports (gitignored)
 ├── blob-report/                  gitignored — sharded blob output
 │
 ├── playwright.config.ts
@@ -259,18 +292,10 @@ export class Header {
     // ...
   }
 
-  async cartBadgeCount(): Promise<number> {
-    /* ... */
-  }
-  async openCart(): Promise<void> {
-    /* ... */
-  }
-  async logout(): Promise<void> {
-    /* ... */
-  }
-  async resetAppState(): Promise<void> {
-    /* ... */
-  }
+  async cartBadgeCount(): Promise<number> { /* ... */ }
+  async openCart(): Promise<void> { /* ... */ }
+  async logout(): Promise<void> { /* ... */ }
+  async resetAppState(): Promise<void> { /* ... */ }
 }
 ```
 
@@ -564,12 +589,20 @@ test('user can create a project @regression', async ({ inventoryPage, header }) 
 });
 ```
 
-### Isolation rules
+### Test isolation rules
 
-- Every test creates its own data. No shared mutable state across tests.
+- Every test creates its own data via factories. No shared mutable state across tests.
 - After every authenticated test, the `page` fixture calls `Header.resetAppState()` to
   reset saucedemo's per-session cart/sort state.
 - Worker storage state is shared **within** a worker, never across workers.
+- Tests must not depend on execution order — any test must be runnable alone.
+
+### Typing rules
+
+- No `any` types — use specific types, `unknown`, or zod-inferred types.
+- All zod schemas must be exported alongside their inferred type (`z.infer<typeof Schema>`).
+- Passwords and tokens come from `process.env.*` — never inline literals.
+- Avoid non-null assertions (`!`) on user input — validate at the boundary instead.
 
 ### Flake prevention
 
@@ -583,12 +616,148 @@ See [`docs/flake-handling.md`](docs/flake-handling.md) for the full playbook:
 | Test passes locally, fails in CI consistently        | **Not flake** — env issue |
 | Test fails on retry but passes after a re-run        | Real flake — investigate  |
 
-### Code-style guardrails (enforced)
+### Code-style guardrails (enforced by CI)
 
 - `tsc --noEmit` clean — strict mode, `forceConsistentCasingInFileNames`
 - `eslint .` clean — `no-explicit-any`, `no-unused-vars`, `no-require-imports`
 - `prettier --check .` clean — auto-fixed by pre-commit hook
 - All checks run in CI's `lint` job — failures block merge
+
+### Definition of "done" for any PR
+
+Before requesting review, all of these must be true:
+
+- [ ] `npm run typecheck` passes — no TypeScript errors
+- [ ] `npm run lint` passes — no ESLint violations
+- [ ] `npm run format:check` passes — or run `npm run format` to auto-fix
+- [ ] `npm run test:smoke` passes against staging/test environment
+- [ ] Every new test has at least one tag in its title string
+- [ ] No `waitForTimeout` anywhere in new or modified code
+- [ ] No CSS class selectors or XPath selectors
+- [ ] No `any` types
+- [ ] No credentials in source code — `process.env.*` only
+- [ ] No `expect()` calls inside page objects
+- [ ] If POMs changed — all affected tests still pass
+- [ ] If visual baselines changed — diffs reviewed image-by-image and committed
+- [ ] If user-facing behavior changed — `README.md` and `CLAUDE.md` updated
+
+---
+
+## Branch Protection & Merge Workflow
+
+This section defines the governance rules for the `main` branch. Every contributor
+(human or AI agent) follows the same path.
+
+### Branch protection rules (configure in GitHub)
+
+Enable these settings under **Settings → Branches → Branch protection rules → `main`**:
+
+| Rule | Setting | Why |
+|------|---------|-----|
+| Require a pull request before merging | ✅ On | No direct pushes — ever |
+| Required approvals | 1 (or 2 for release branches) | Human review before merge |
+| Dismiss stale reviews | ✅ On | New commits invalidate prior approvals |
+| Require review from code owners | ✅ On | `.github/CODEOWNERS` auto-assigns reviewers |
+| Require status checks to pass | ✅ On | `lint` + `smoke` must be green |
+| Require branches to be up to date | ✅ On | No merging stale branches |
+| Restrict who can push to `main` | Admins only | Non-admins can never push directly |
+| Allow force pushes | ❌ Off | History is immutable |
+| Allow deletions | ❌ Off | `main` cannot be deleted |
+
+> **Admin note:** Admins *can* bypass branch protection. Use that power only for
+> emergency hotfixes. Document every bypass in the PR description.
+
+### Contributor workflow (non-admin)
+
+Every change — including AI-generated code — goes through this path:
+
+```
+1. Branch    git checkout -b feat/PROJ-123-add-checkout-tests
+2. Develop   make changes locally
+3. Gate      npm run typecheck && npm run lint && npm run test:smoke
+4. Commit    git commit  (pre-commit hook runs automatically)
+5. Push      git push origin feat/PROJ-123-add-checkout-tests
+6. PR        open PR → fill in template → CI runs automatically
+7. Review    address comments → get 1 approval from CODEOWNERS
+8. Merge     squash and merge (never rebase onto main without approval)
+```
+
+**Branch naming convention:**
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| Feature / new test | `feat/<ticket>-<slug>` | `feat/PROJ-123-checkout-tests` |
+| Bug fix | `fix/<ticket>-<slug>` | `fix/QA-456-login-selector` |
+| POM addition | `pom/<page-name>` | `pom/checkout-page` |
+| Chore / config | `chore/<slug>` | `chore/update-playwright` |
+| Release | `release/<version>` | `release/v2.1.0` |
+
+### Code review checklist (for reviewers)
+
+When reviewing a PR, verify each item:
+
+**Test quality**
+- [ ] Tests are tagged — no untagged tests
+- [ ] Each test is self-contained — no execution-order dependencies
+- [ ] `@smoke` tests run in under 30 s each
+- [ ] No `waitForTimeout` — only semantic waits
+- [ ] No CSS class selectors or XPath
+
+**Page Object quality**
+- [ ] Locators are `private readonly` — not exposed to test files
+- [ ] Methods are named for user intent (`login()`, not `clickLoginButton()`)
+- [ ] `waitForLoad()` is implemented and uses `waitFor`, not `expect`
+- [ ] No `expect()` calls inside the POM
+
+**Code quality**
+- [ ] No `any` types
+- [ ] No credentials in source code
+- [ ] TypeScript compiles cleanly (`npm run typecheck`)
+- [ ] ESLint passes cleanly (`npm run lint`)
+
+**Security**
+- [ ] No `.env.local`, `.auth/*`, or token values added to the PR
+- [ ] No new dependencies without justification (check the diff in `package-lock.json`)
+- [ ] No hardcoded URLs pointing to production environments
+
+**Documentation**
+- [ ] New page objects are reflected in `README.md` layout (if structure changed)
+- [ ] New env vars added to `.env.example` and `CLAUDE.md` knobs table
+- [ ] If a new test type was added, CI workflow is updated to run it
+
+### AI-generated code policy
+
+Code generated by Claude (or any AI assistant) is held to **exactly the same standard**
+as human-written code. There are no exceptions.
+
+- AI-generated tests must go through the same PR → review → merge workflow
+- The reviewer is responsible for catching AI anti-patterns (`waitForTimeout`, CSS
+  selectors, `any` types, missing tags)
+- Use `agents/jira-qa-runner.md` for structured AI-driven test generation — it enforces
+  coding standards before outputting files
+- Never commit directly from a Claude session without running the full pre-push gate:
+  ```bash
+  npm run typecheck && npm run lint && npm run test:smoke
+  ```
+
+### Emergency hotfix process (admins only)
+
+When a production regression needs an immediate fix:
+
+1. Push directly to `main` (admin bypass — document why in commit message)
+2. Open a PR **after** the push to capture the review
+3. Run `npm run test:smoke` on the fix before pushing
+4. Tag the commit: `git tag hotfix/YYYY-MM-DD-description`
+5. Post a summary in the team Slack channel
+
+This process must not become routine. If hotfixes happen more than once a month,
+add the scenario to the smoke suite.
+
+### Squash and merge — always
+
+- **Squash merge** for feature branches and bug fixes — one clean commit on `main`
+- **Merge commit** for release branches — preserves the release history
+- **Never rebase onto `main`** — it rewrites commit hashes and breaks any linked PRs
 
 ---
 
@@ -606,6 +775,8 @@ Read [`SECURITY.md`](SECURITY.md) for the full policy. Summary:
 - CI uses these GitHub Actions secrets:
   `BASE_URL`, `TEST_USER_USERNAME`, `TEST_USER_PASSWORD`, `SLACK_WEBHOOK_URL`,
   `LHCI_GITHUB_APP_TOKEN`.
+- Jira credentials (`JIRA_API_TOKEN`) follow the same rule — never in source, stored in
+  GitHub Actions secrets, rotated every 90 days (see `docs/contacts.md`).
 
 ### Target rules
 
@@ -701,6 +872,12 @@ TEST_USER_PASSWORD=secret_sauce                 # required — saucedemo default
 API_KEY=                                        # optional
 SLACK_WEBHOOK_URL=                              # optional
 LHCI_GITHUB_APP_TOKEN=                          # optional (LHCI GitHub status)
+
+# Jira integration (required for jira-qa-runner agent)
+JIRA_BASE_URL=https://your-org.atlassian.net   # no trailing slash
+JIRA_EMAIL=qa-bot@your-org.com
+JIRA_API_TOKEN=                                # rotate every 90 days
+JIRA_PROJECT_KEY=QA
 ```
 
 ### Runtime knobs
@@ -713,6 +890,11 @@ LHCI_GITHUB_APP_TOKEN=                          # optional (LHCI GitHub status)
 | `PW_DISABLE_VIDEO=1`                        | Set `video: 'off'` (useful when ffmpeg can't install)                          |
 | `PW_CHROMIUM_CHANNEL=chrome`                | Use system-installed Chrome instead of Playwright's chromium                   |
 | `CI`                                        | Auto-set by GitHub Actions — toggles retries, workers, reporter, teardown wipe |
+| `JIRA_BASE_URL`                             | Jira Cloud URL — required for `jira-qa-runner` agent                           |
+| `JIRA_EMAIL`                                | Service account email for Jira Basic auth                                      |
+| `JIRA_API_TOKEN`                            | Jira API token — never commit; rotate every 90 days                            |
+| `JIRA_PROJECT_KEY`                          | Project key where auto-defects are filed (e.g. `QA`)                           |
+| `ENV_CHECK_TIMEOUT_MS`                      | Override 5-min default for environment readiness polling                       |
 
 ---
 
@@ -773,6 +955,7 @@ See [`TODO.md`](TODO.md) for the full checklist. Five-minute version:
 | CI secrets             | GitHub Settings → Secrets and variables → Actions                      |
 | Code owners            | `.github/CODEOWNERS`                                                   |
 | Slack channel          | Slack app settings, not this repo                                      |
+| Jira project keys      | `docs/contacts.md` + `JIRA_PROJECT_KEY` env var                        |
 
 Add new page objects as your app grows. Keep `@smoke` small — if it takes more than
 2 minutes, split into `@regression`.
@@ -795,18 +978,67 @@ while you work. Claude can:
 
 **Default is headless** (`--headless` in `.mcp.json`). Remove that flag to run headed.
 
+### Jira MCP — AI-driven ticket operations
+
+[`.mcp.json`](.mcp.json) also configures `mcp-atlassian` for agent-native Jira operations.
+Requires Python + uv (`pip install uv` or `brew install uv`) and `JIRA_*` vars in `.env.local`.
+
+Claude can:
+
+- Read a Jira ticket's acceptance criteria and generate tests from it
+- Search for existing open defects before creating new ones
+- File `[AUTO]` bug tickets when tests fail and can't be self-healed
+- Link defects back to the source feature ticket
+
 ### Agents · skills · commands
 
 The `agents/`, `skills/`, and `commands/` folders define how Claude approaches tasks in
 this repo:
 
-| Folder      | Purpose                | Examples                                                                               |
-| ----------- | ---------------------- | -------------------------------------------------------------------------------------- |
-| `agents/`   | Role-shaped agents     | `test-writer`, `triage`, `pom-builder`                                                 |
-| `skills/`   | Atomic capabilities    | `write-test`, `create-page-object`, `generate-locator`, `analyze-failure`, `run-tests` |
-| `commands/` | Step-by-step playbooks | `test`, `smoke`, `lint`, `update-snapshots`, `new-page`                                |
+| Folder      | Purpose                | Examples                                                                                                                    |
+| ----------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `agents/`   | Role-shaped agents     | `test-writer`, `triage`, `pom-builder`, **`jira-qa-runner`**                                                                |
+| `skills/`   | Atomic capabilities    | `write-test`, `create-page-object`, `generate-locator`, `analyze-failure`, `run-tests`, **`pull-jira-ticket`**, **`self-heal-test`**, **`create-jira-defect`** |
+| `commands/` | Step-by-step playbooks | `test`, `smoke`, `lint`, `update-snapshots`, `new-page`, **`jira-qa-run`**, **`check-environment`**                         |
+
+#### When to use which
+
+| Task | Use |
+|------|-----|
+| Write tests from a feature description | `agents/test-writer.md` |
+| Debug a failing or flaky test | `agents/triage.md` |
+| Create a new Page Object | `agents/pom-builder.md` |
+| Pull a Jira ticket → generate tests → run → report → file defect | `agents/jira-qa-runner.md` |
+| Quick smoke check | `commands/smoke.md` |
+| Full test run | `commands/test.md` |
+| Poll environment until ready | `commands/check-environment.md` |
+| End-to-end Jira QA cycle | `commands/jira-qa-run.md` |
 
 Full reference: [`CLAUDE.md`](CLAUDE.md).
+
+### Jira QA Runner — automated ticket-to-defect pipeline
+
+The `jira-qa-runner` agent automates the full QA lifecycle for a Jira ticket:
+
+```
+Ticket PROJ-123
+  → extract acceptance criteria
+  → generate Playwright test file(s)
+  → wait for environment to be ready
+  → run tests
+  → if failing: attempt one self-heal (selector/timing only)
+  → write run report to reports/runs/YYYY-MM-DD-PROJ-123.md
+  → if still failing: create [AUTO] Jira defect (with dedup check)
+  → store selector/flake patterns to memory
+```
+
+To use it, invoke the agent with a ticket ID:
+```
+Use agents/jira-qa-runner to run the QA cycle for PROJ-123
+```
+
+See [`commands/jira-qa-run.md`](commands/jira-qa-run.md) for the step-by-step runbook
+and [`docs/contacts.md`](docs/contacts.md) for team escalation paths.
 
 ---
 
@@ -818,6 +1050,7 @@ Full reference: [`CLAUDE.md`](CLAUDE.md).
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — PR workflow + coding standards
 - [`TODO.md`](TODO.md) — adapt-the-template checklist
 - [`docs/flake-handling.md`](docs/flake-handling.md) — flake taxonomy + playbook
+- [`docs/contacts.md`](docs/contacts.md) — team contacts, Jira keys, escalation, token rotation
 - [`tests/visual/README.md`](tests/visual/README.md) — baseline-per-browser convention
 
 ---

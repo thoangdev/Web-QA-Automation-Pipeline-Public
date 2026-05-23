@@ -527,6 +527,9 @@ Thresholds in `lighthouserc.yml`.
 | `PW_KEEP_AUTH=1`             | Skip the start-of-run wipe of `.auth/user-*.json` (local debugging only)                     |
 | `PW_DISABLE_VIDEO=1`         | Sets `video: 'off'` (useful when ffmpeg can't install)                                       |
 | `PW_CHROMIUM_CHANNEL=chrome` | Run against system-installed Chrome instead of Playwright's chromium                         |
+| `API_KEY`                    | Optional — passed to API tests that call authenticated endpoints                              |
+| `SLACK_WEBHOOK_URL`          | Optional — Slack incoming webhook URL for CI failure notifications                           |
+| `LHCI_GITHUB_APP_TOKEN`      | Optional — Lighthouse CI GitHub App token for PR status checks                              |
 | `JIRA_BASE_URL`              | Jira Cloud instance URL (no trailing slash) — required for `jira-qa-runner`                  |
 | `JIRA_EMAIL`                 | Service account email for Jira Basic auth                                                    |
 | `JIRA_API_TOKEN`             | Jira API token — never commit; rotate every 90 days (see `docs/contacts.md`)                 |
