@@ -403,31 +403,39 @@ CI caches `~/.cache/ms-playwright` keyed on `package-lock.json`. On cache hit, o
 
 ### When to use agents
 
-| Task                                        | Agent                   |
-| ------------------------------------------- | ----------------------- |
-| Write a new test from a feature description | `agents/test-writer.md` |
-| Debug a failing or flaky test               | `agents/triage.md`      |
-| Create a new Page Object class              | `agents/pom-builder.md` |
+| Task                                        | Agent                      |
+| ------------------------------------------- | -------------------------- |
+| Write a new test from a feature description | `agents/test-writer.md`    |
+| Debug a failing or flaky test               | `agents/triage.md`         |
+| Create a new Page Object class              | `agents/pom-builder.md`    |
+| Run full Jira ticket → test → report cycle  | `agents/jira-qa-runner.md` |
 
 ### When to use skills
 
-| Task                                        | Skill                          |
-| ------------------------------------------- | ------------------------------ |
-| Produce a test file                         | `skills/write-test.md`         |
-| Scaffold a POM class                        | `skills/create-page-object.md` |
-| Find the right locator for an element       | `skills/generate-locator.md`   |
-| Analyze a test failure from output or trace | `skills/analyze-failure.md`    |
-| Execute tests in the right mode             | `skills/run-tests.md`          |
+| Task                                              | Skill                            |
+| ------------------------------------------------- | -------------------------------- |
+| Produce a test file                               | `skills/write-test.md`           |
+| Scaffold a POM class                              | `skills/create-page-object.md`   |
+| Find the right locator for an element             | `skills/generate-locator.md`     |
+| Analyze a test failure from output or trace       | `skills/analyze-failure.md`      |
+| Execute tests in the right mode                   | `skills/run-tests.md`            |
+| Extract title, description, AC from a Jira ticket | `skills/pull-jira-ticket.md`     |
+| Attempt selector/timing fix after triage finding  | `skills/self-heal-test.md`       |
+| Write a per-run outcome report to `reports/runs/` | `skills/write-run-report.md`     |
+| Create a Jira bug with deduplication check        | `skills/create-jira-defect.md`   |
+| Persist QA learnings to Claude memory             | `skills/store-qa-memory.md`      |
 
 ### When to use commands
 
-| Task                              | Command                        |
-| --------------------------------- | ------------------------------ |
-| Run the full suite                | `commands/test.md`             |
-| Quick smoke validation            | `commands/smoke.md`            |
-| Static analysis before committing | `commands/lint.md`             |
-| Regenerate visual baselines       | `commands/update-snapshots.md` |
-| Scaffold a new page + tests       | `commands/new-page.md`         |
+| Task                                       | Command                          |
+| ------------------------------------------ | -------------------------------- |
+| Run the full suite                         | `commands/test.md`               |
+| Quick smoke validation                     | `commands/smoke.md`              |
+| Static analysis before committing          | `commands/lint.md`               |
+| Regenerate visual baselines                | `commands/update-snapshots.md`   |
+| Scaffold a new page + tests                | `commands/new-page.md`           |
+| Full Jira-integrated QA cycle for a ticket | `commands/jira-qa-run.md`        |
+| Poll environment until ready before tests  | `commands/check-environment.md`  |
 
 ### When to use Playwright MCP
 
@@ -450,6 +458,31 @@ conversation.
 - **Never** navigate to production — staging or local dev servers only.
 - MCP sessions are ephemeral. Don't rely on browser state persisting between tool calls.
 - MCP replaces standalone `npx playwright codegen` for locator work in conversations.
+
+### When to use Jira MCP
+
+`.mcp.json` also configures `mcp-atlassian` for agent-native Jira operations. Requires
+`JIRA_BASE_URL`, `JIRA_EMAIL`, and `JIRA_API_TOKEN` in `.env.local`.
+
+> **Setup:** `mcp-atlassian` requires Python + uv. Install: `pip install uv` or
+> `brew install uv`. Then the MCP server auto-starts via `uvx mcp-atlassian` when needed.
+
+| Situation | MCP tool |
+| ------------------------------------------------------------------ | ----------------------- |
+| Read a ticket's fields and acceptance criteria | `get_issue` |
+| Search for existing open defects before filing | `search_issues` (JQL)   |
+| Create a new bug defect from a failing test | `create_issue`          |
+| Link a defect to its source ticket | `create_issue_link`     |
+
+**Jira MCP rules:**
+
+- Use Jira MCP for agent-driven Jira reads and writes (conversations, `jira-qa-runner`).
+- Use `src/api/JiraApi.ts` when a **test** needs to assert on Jira data (e.g. verify a
+  defect was created as part of an integration test).
+- **Never** create defects for `Environment` category failures — those go to the platform
+  team, not Jira.
+- Always run `search_issues` before `create_issue` — never create duplicate defects.
+- Never expose `JIRA_API_TOKEN` values in output, run reports, or memory entries.
 
 ---
 
@@ -494,6 +527,11 @@ Thresholds in `lighthouserc.yml`.
 | `PW_KEEP_AUTH=1`             | Skip the start-of-run wipe of `.auth/user-*.json` (local debugging only)                     |
 | `PW_DISABLE_VIDEO=1`         | Sets `video: 'off'` (useful when ffmpeg can't install)                                       |
 | `PW_CHROMIUM_CHANNEL=chrome` | Run against system-installed Chrome instead of Playwright's chromium                         |
+| `JIRA_BASE_URL`              | Jira Cloud instance URL (no trailing slash) — required for `jira-qa-runner`                  |
+| `JIRA_EMAIL`                 | Service account email for Jira Basic auth                                                    |
+| `JIRA_API_TOKEN`             | Jira API token — never commit; rotate every 90 days (see `docs/contacts.md`)                 |
+| `JIRA_PROJECT_KEY`           | Jira project key where auto-defects are filed (e.g. `QA`)                                   |
+| `ENV_CHECK_TIMEOUT_MS`       | Override default 300 s environment readiness poll timeout                                     |
 
 ---
 
