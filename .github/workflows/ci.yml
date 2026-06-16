@@ -91,7 +91,7 @@ jobs:
 
       - name: Upload blob report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: blob-report-smoke-${{ matrix.shard }}
           path: blob-report
@@ -124,13 +124,13 @@ jobs:
         env:
           PLAYWRIGHT_JSON_OUTPUT_NAME: merged-results.json
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: html-report-smoke-${{ github.run_number }}
           path: playwright-report
           retention-days: 14
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: results-json-${{ github.run_number }}
           path: merged-results.json
@@ -219,7 +219,7 @@ jobs:
             --grep @regression \
             --grep-invert "@quarantine" \
             --project=chromium
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: blob-report-regression-${{ github.run_number }}
@@ -292,7 +292,7 @@ jobs:
           key: pw-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test --grep @visual --project=chromium
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: blob-report-visual-${{ github.run_number }}
